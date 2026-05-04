@@ -1,0 +1,3 @@
+# local zig files
+.zig-cache/
+.zig-out/
