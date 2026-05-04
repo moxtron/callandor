@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Zig 0.15.1
+        uses: mlugg/setup-zig@v2
+        with:
+          version: '0.15.1'
+
+      - name: Build firmware
+        run: zig build
+
+      - name: Run unit tests
+        run: zig build test
