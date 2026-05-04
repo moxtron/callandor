@@ -38,5 +38,3 @@ zig build test   # run unit tests (no hardware needed)
 | M5 | Tuning & flight testing | Aircraft flies stably in stabilized mode |
 
 ## License
-
-MIT
