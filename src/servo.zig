@@ -5,7 +5,10 @@ const pwmlib = @import("pwm.zig");      // `pwmlib` to avoid confusion with micr
 const rpi = microzig.hal;
 const pwm = rpi.pwm;
 
+const Pwm = pwm.Pwm;
+const Channel = pwm.Channel;
 
+/// servo settings
 pub const ServoConfig = struct {
     min_us:    u16 = 1000,
     center_us: u16 = 1500,
@@ -14,9 +17,13 @@ pub const ServoConfig = struct {
 };
 
 // TODO: add ISR interrupts to only overwrite the PWM pulse width if the cycle is over
+/// creates a Servo struct with bindings to a specific PWM channel
 pub const Servo = struct {
     pwm: pwm.Pwm,
     config: ServoConfig,
+    slice: u3,
+    channel: pwm.Channel,
+
 
     // sets up the PWM slice and centers the servo
     pub fn init(pwm_struct: pwm.Pwm, config: ServoConfig) Servo {
@@ -30,6 +37,8 @@ pub const Servo = struct {
         return .{
             .pwm = pwm_struct,
             .config = config,
+            .slice = @truncate(pwm_struct.slice_number),
+            .channel = pwm_struct.channel,
         };
 
     }
