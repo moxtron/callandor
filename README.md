@@ -2,7 +2,7 @@
 
 Fixed-wing flight computer on the RP2040, written in Zig and C with MicroZig.
 
-> **Status:** Early development — toolchain scaffolding in place.
+> **Status:** Early development — basic servo functionality in place. PWM interupts are next.
 
 ---
 
