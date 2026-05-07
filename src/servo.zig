@@ -13,6 +13,7 @@ pub const ServoConfig = struct {
     reversed: bool = false, // mainly meant for the second aileron
 };
 
+// TODO: add ISR interrupts to only overwrite the PWM pulse width if the cycle is over
 pub const Servo = struct {
     pwm: pwm.Pwm,
     config: ServoConfig,
@@ -32,13 +33,16 @@ pub const Servo = struct {
         };
 
     }
-    pub fn setPulse(self: *Servo, us: u16) void {
+    pub fn setPulse(self: *const Servo, us: u16) void {
         // `clamp` assures the value is in the safe range
-        const level: u16 = std.math.clamp(us, self.config.min_us, self.config.max_us);
+        const level: u16 = switch (self.config.reversed) {
+            true  => 3000 - std.math.clamp(us, self.config.min_us, self.config.max_us),
+            false => std.math.clamp(us, self.config.min_us, self.config.max_us),
+        };
         self.pwm.set_level(level);
 
     }
-    pub fn center(self: *Servo) void {
+    pub fn center(self: *const Servo) void {
         self.pwm.set_level(self.config.center_us);
     }
     // maybe later add a setNormalized(f: f32[-1..1]) for mixing
