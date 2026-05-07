@@ -1,0 +1,45 @@
+const std = @import("std");
+const microzig = @import("microzig");
+const pwmlib = @import("pwm.zig");      // `pwmlib` to avoid confusion with microzigs `pwm`
+
+const rpi = microzig.hal;
+const pwm = rpi.pwm;
+
+
+pub const ServoConfig = struct {
+    min_us:    u16 = 1000,
+    center_us: u16 = 1500,
+    max_us:    u16 = 2000,
+    reversed: bool = false, // mainly meant for the second aileron
+};
+
+pub const Servo = struct {
+    pwm: pwm.Pwm,
+    config: ServoConfig,
+
+    // sets up the PWM slice and centers the servo
+    pub fn init(pwm_struct: pwm.Pwm, config: ServoConfig) Servo {
+        // setup the pwm slice
+        const slice = pwm_struct.slice();
+        slice.set_clk_div(pwmlib.div, pwmlib.frac);
+        slice.set_wrap(pwmlib.wrap);
+        slice.enable();
+        // set the servo to neutral
+        pwm_struct.set_level(config.center_us);
+        return .{
+            .pwm = pwm_struct,
+            .config = config,
+        };
+
+    }
+    pub fn setPulse(self: *Servo, us: u16) void {
+        // `clamp` assures the value is in the safe range
+        const level: u16 = std.math.clamp(us, self.config.min_us, self.config.max_us);
+        self.pwm.set_level(level);
+
+    }
+    pub fn center(self: *Servo) void {
+        self.pwm.set_level(self.config.center_us);
+    }
+    // maybe later add a setNormalized(f: f32[-1..1]) for mixing
+};
