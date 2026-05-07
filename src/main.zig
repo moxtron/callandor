@@ -5,6 +5,7 @@ const rpi = microzig.hal;
 const time = rpi.time;
 
 // Compile-time pin configuration
+// DO NOT CHANGE! (except for a really, really good reason)
 const pin_config = rpi.pins.GlobalConfiguration{
     .GPIO22 = .{
         .name = "esc",
