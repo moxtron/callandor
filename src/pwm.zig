@@ -71,9 +71,12 @@ pub fn enableCpuIrq() void {
 /// Updating CC here is glitch-free, as there is no ongoing pulse.
 pub fn handler() callconv(.c) void {
     const INTS = @as(*volatile u32, @ptrFromInt(PWM_BASE + INTS_OFFSET));
-    const INTE = @as(*volatile u32, @ptrFromInt(PWM_BASE + INTR_OFFSET));
+    const INTR = @as(*volatile u32, @ptrFromInt(PWM_BASE + INTR_OFFSET));
 
+    // find out which slices are wrapped
     var fired: u8 = @truncate(INTS.*);
+    // acknowledge all fired interrupts in one write (W1C)
+    INTR.* = fired;
 
     // apply levels from the buffer for every fired slice
     while(fired != 0) {
