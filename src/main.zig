@@ -1,8 +1,12 @@
 const std = @import("std");
 const microzig = @import("microzig");
+const servo = @import("servo.zig");
 
 const rpi = microzig.hal;
 const time = rpi.time;
+
+const Servo = servo.Servo;
+const ServoConfig = servo.ServoConfig;
 
 // Compile-time pin configuration
 // DO NOT CHANGE! (except for a really, really good reason)
@@ -36,8 +40,15 @@ const pin_config = rpi.pins.GlobalConfiguration{
 
 pub fn main() void {
     const pins = pin_config.apply();
-    _ = pins;
-
+    const aileron_left = Servo.init(pins.aileron_left, .{});
     while (true) {
+        aileron_left.setPulse(1000);
+        time.sleep_ms(500);
+        aileron_left.center();
+        time.sleep_ms(500);
+        aileron_left.setPulse(2000);
+        time.sleep_ms(500);
+        aileron_left.center();
+        time.sleep_ms(500);
     }
 }
