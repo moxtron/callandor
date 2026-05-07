@@ -32,8 +32,11 @@ pub const Servo = struct {
         slice.set_clk_div(pwmlib.div, pwmlib.frac);
         slice.set_wrap(pwmlib.wrap);
         slice.enable();
-        // set the servo to neutral
+        // direct write for initial position
         pwm_struct.set_level(config.center_us);
+
+        // prime the ISR buffer so it never applies a stale zero
+        pwmlib.setLevel(pwm_struct.channel, @as(u3, @truncate(pwm_struct.slice_number)), config.center_us);
         return .{
             .pwm = pwm_struct,
             .config = config,
@@ -48,11 +51,11 @@ pub const Servo = struct {
             true  => 3000 - std.math.clamp(us, self.config.min_us, self.config.max_us),
             false => std.math.clamp(us, self.config.min_us, self.config.max_us),
         };
-        self.pwm.set_level(level);
+        pwmlib.setLevel(self.channel, self.slice, level);
 
     }
     pub fn center(self: *const Servo) void {
-        self.pwm.set_level(self.config.center_us);
+        pwmlib.setLevel(self.config.center_us);
     }
     // maybe later add a setNormalized(f: f32[-1..1]) for mixing
 };
