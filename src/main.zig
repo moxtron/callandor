@@ -72,24 +72,20 @@ fn setup_uart0() void {
 
 
 pub fn main() void {
-    _ = setup_uart0();
-
+    setup_uart0();
+    std.log.info("main() starting...",.{});
     // setting up the PWM pins
     const pins = pin_config.apply();
     const aileron_left = Servo.init(pins.aileron_left, .{});
     pwmlib.initFromPinConfig(pin_config);
 
-    var i: u16 = 1000;
-    var before = time.get_time_since_boot();
     while (true) {
-        if (i >= 2000) i = 1000;
-        const now = time.get_time_since_boot();
-        if (now.diff(before).to_us() >= 1_000_000) {
-            before = now;
-            std.log.info("fire counter: {d}", .{ pwmlib.fire_counter });
-        }
-        aileron_left.setPulse(i);
-        i += 0b11111111;
-
+        aileron_left.setPulse(1000);
+        time.sleep_ms(333);
+        aileron_left.center();
+        time.sleep_ms(333);
+        aileron_left.setPulse(2000);
+        time.sleep_ms(333);
+        std.log.info("Fired: {}", .{pwmlib.fire_counter});
     }
 }
