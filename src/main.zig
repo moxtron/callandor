@@ -8,9 +8,11 @@ const pwmlib = @import("pwm.zig");
 const rpi = microzig.hal;
 const time = rpi.time;
 const uart = rpi.uart;
+const sleep = time.sleep_ms;
 
 const Servo = servo.Servo;
 const ServoConfig = servo.ServoConfig;
+const ServoGroup = servo.ServoGroup;
 
 pub const microzig_options: microzig.Options = .{
     .interrupts = .{
@@ -76,16 +78,46 @@ pub fn main() void {
     std.log.info("main() starting...",.{});
     // setting up the PWM pins
     const pins = pin_config.apply();
-    const aileron_left = Servo.init(pins.aileron_left, .{});
+
+    const aileron_left  = Servo.init(pins.aileron_left, .{});
+    const aileron_right = Servo.init(pins.aileron_right, .{});
+    const elevator      = Servo.init(pins.elevator, .{});
+    const rudder        = Servo.init(pins.rudder, .{});
+    const esc           = Servo.init(pins.esc, .{});
+
+    const front = ServoGroup(2).init(.{
+        aileron_left,
+        aileron_right,
+    });
+    const back = ServoGroup(2).init(.{
+        elevator,
+        rudder,
+    });
+
     pwmlib.initFromPinConfig(pin_config);
 
+    const level = ServoConfig{};
     while (true) {
-        aileron_left.setPulse(1000);
-        time.sleep_ms(333);
-        aileron_left.center();
-        time.sleep_ms(333);
-        aileron_left.setPulse(2000);
-        time.sleep_ms(333);
-        std.log.info("Fired: {}", .{pwmlib.fire_counter});
+
+        front.setPulse(level.min_us);
+        sleep(500);
+        front.setPulse(level.max_us);
+        sleep(500);
+        front.center();
+        sleep(2000);
+
+        back.setPulse(level.min_us);
+        sleep(500);
+        back.setPulse(level.max_us);
+        sleep(500);
+        back.center();
+        sleep(2000);
+
+        esc.setPulse(level.min_us);
+        sleep(500);
+        esc.setPulse(level.max_us);
+        sleep(500);
+        esc.center();
+        sleep(2000);
     }
 }
