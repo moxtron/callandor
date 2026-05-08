@@ -4,6 +4,9 @@ const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 
+const build_options = @import("build_options");
+const calibrate_mode = build_options.calibrate;
+
 
 const rpi = microzig.hal;
 const time = rpi.time;
@@ -72,21 +75,33 @@ fn setup_uart0() void {
 }
 
 
-
 pub fn main() void {
-    esc.init(.{});
-    esc.calibrate(.{});
-
-    setup_uart0();
-    std.log.info("main() starting...",.{});
     // setting up the PWM pins
     const pins = pin_config.apply();
 
+    // initialize ESC
+    var motor = esc.Esc.init(pins.esc, .{}, calibrate_mode);
+    // initialize servos
     const aileron_left  = Servo.init(pins.aileron_left, .{});
     const aileron_right = Servo.init(pins.aileron_right, .{});
     const elevator      = Servo.init(pins.elevator, .{});
     const rudder        = Servo.init(pins.rudder, .{});
 
+    // initialize interrupts
+    pwmlib.initFromPinConfig(pin_config);
+
+    // arm/calibrate the ESC
+    switch (calibrate_mode) {
+        false => motor.arm(),
+        true  => motor.calibrate(),
+    }
+
+
+    // setup debug on uart0
+    setup_uart0();
+    std.log.info("main() starting...",.{});
+
+    // group the servos for easier testing
     const front = ServoGroup(2).init(.{
         aileron_left,
         aileron_right,
@@ -96,7 +111,7 @@ pub fn main() void {
         rudder,
     });
 
-    pwmlib.initFromPinConfig(pin_config);
+
 
     const level = ServoConfig{};
     while (true) {
@@ -108,12 +123,21 @@ pub fn main() void {
         front.center();
         sleep(2000);
 
+        motor.setThrottle(1300);
+        sleep(500);
+        motor.setThrottle(1200);
+        sleep(500);
+        motor.setThrottle(1100);
+        sleep(500);
+
         back.setPulse(level.min_us);
         sleep(500);
         back.setPulse(level.max_us);
         sleep(500);
         back.center();
         sleep(2000);
+
+
 
     }
 }
