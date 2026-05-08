@@ -2,7 +2,7 @@
 
 Fixed-wing flight computer on the RP2040, written in Zig and C with MicroZig.
 
-> **Status:** Early development — basic servo functionality in place. PWM interupts are next.
+> **Status:** Early development — PWM control for servos & ESC working. Milestone M0 complete.
 
 ---
 
