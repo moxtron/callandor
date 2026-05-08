@@ -12,10 +12,12 @@ pub const clk = struct {
 };
 
 
-// total amount of pwm slices on the RP2040
+/// Defines the total amount of PWM slices the microcontroller provides
 pub const NUM_SLICES: usize = 8;
 // set this to a size allowing for NUM_SLICES
+/// use this for slice numbers. Must be adjusted to fit `log2(NUM_SLICES)` bits.
 pub const SliceIndex = u3; // hardcoded for better ZLS
+
 // swap it for the latter function when upgrading to RP2350
 // pub const SliceIndex = std.meta.Int(.unsigned, std.math.log2(NUM_SLICES));
 
@@ -34,8 +36,8 @@ const SliceBuffer =  struct{
     active: bool = false,  // false -> entry is skipped
 };
 
-// pwm values are written to this buffer
-// on interrupt they get later written into the pwm registers
+/// PWM values are written to this buffer.
+/// On interrupt they get later written into the pwm registers
 var buffer: [NUM_SLICES]SliceBuffer = [_]SliceBuffer{.{}} ** NUM_SLICES;
 
 // ----------------------------------------
@@ -62,6 +64,8 @@ pub fn enableSliceIrq(slice_num: SliceIndex) void {
     INTE.* |= @as(u32, 1) << slice_num; // NOTE: here the small SliceIndex is needed instead of u32
 }
 
+/// Enable IRQ interrupts for PWM.
+/// This is the very last step.
 pub fn enableCpuIrq() void {
     // --- old version ---
     // NVIC ISER0: writing a 1 to bit N enables IRQ N
@@ -104,8 +108,10 @@ pub fn handler() callconv(.c) void {
         cc.* = @as(u32, level_b) << 16 | level_a;
     }
 }
-pub fn initFromPinConfig(comptime pin_config: anytype) void {
 
+/// Sets up the PWM interrupts using the `GlobalConfiguration` at comptime.
+/// No overhead during runtime.
+pub fn initFromPinConfig(comptime pin_config: anytype) void {
     const active_slices = comptime blk: {
         // the BitSet here is used for deduplication
         var slices = std.StaticBitSet(NUM_SLICES).initEmpty();
@@ -125,4 +131,5 @@ pub fn initFromPinConfig(comptime pin_config: anytype) void {
             enableSliceIrq(@truncate(i));
         }
     }
+    enableCpuIrq();
 }

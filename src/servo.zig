@@ -18,7 +18,7 @@ pub const ServoConfig = struct {
 };
 
 // TODO: add ISR interrupts to only overwrite the PWM pulse width if the cycle is over
-/// creates a Servo struct with bindings to a specific PWM channel
+/// Creates a Servo struct with bindings to a specific PWM channel.
 pub const Servo = struct {
     pwm: pwm.Pwm,
     config: ServoConfig,
@@ -26,7 +26,7 @@ pub const Servo = struct {
     channel: pwm.Channel,
 
 
-    // sets up the PWM slice and centers the servo
+    /// Sets up the PWM slice for the new servo and centers the motor.
     pub fn init(pwm_struct: pwm.Pwm, config: ServoConfig) Servo {
         // setup the pwm slice
         const slice = pwm_struct.slice();
@@ -46,6 +46,7 @@ pub const Servo = struct {
         };
 
     }
+    /// Sets a new PWM level. Safe to use at any rate, as it is registered with the PWM interrupt handler.
     pub fn setPulse(self: *const Servo, us: u16) void {
         // `clamp` assures the value is in the safe range
         const level: u16 = switch (self.config.reversed) {
