@@ -76,6 +76,9 @@ pub fn enableCpuIrq() void {
     microzig.cpu.interrupt.enable(.PWM_IRQ_WRAP);
 }
 
+/// for verifying the handler fires at the correct rate
+pub var fire_counter: usize = 0;
+
 /// PWM interrupt handler. Fires at 50Hz for each registered slice.
 ///
 /// At the start of each new 20ms cycle the counter is just reset to 0.
@@ -97,6 +100,8 @@ pub fn handler() callconv(.c) void {
         const b = &buffer[index];
 
         if (!b.active) continue;
+        //debug
+        fire_counter += 1;
 
         const level_a = @atomicLoad(u16, &b.level_a, .monotonic);
         const level_b = @atomicLoad(u16, &b.level_b, .monotonic);
