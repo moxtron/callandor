@@ -11,13 +11,40 @@ const SliceIndex = pwmlib.SliceIndex;
 
 /// Settings for servo motor. Defines its range, the center point and if it is reversed.
 pub const ServoConfig = struct {
-    min_us:    u16 = 1000,
+    min_us:    u16 = 550,
     center_us: u16 = 1500,
-    max_us:    u16 = 2000,
+    max_us:    u16 = 2450,
     reversed: bool = false, // mainly meant for the second aileron
 };
 
-// TODO: add ISR interrupts to only overwrite the PWM pulse width if the cycle is over
+
+/// A group of servos that can be controlled together.
+pub fn ServoGroup(comptime N: usize) type {
+    return struct {
+        servos: [N]Servo,
+        count: usize = 0,
+
+        const Self = @This();
+
+        pub fn init(servos: [N]Servo) Self {
+            return .{
+                .servos = servos,
+            };
+        }
+
+        pub fn setPulse(self: Self, us: u16) void {
+            for (self.servos) |servo| {
+                servo.setPulse(us);
+            }
+        }
+        pub fn center(self: Self) void {
+            for (self.servos) |servo| {
+                servo.center();
+            }
+        }
+    };
+}
+
 /// Creates a Servo struct with bindings to a specific PWM channel.
 pub const Servo = struct {
     pwm: pwm.Pwm,
