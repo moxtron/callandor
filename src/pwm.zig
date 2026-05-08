@@ -4,11 +4,12 @@ const microzig = @import("microzig");
 const rpi = microzig.hal;
 const Channel = rpi.pwm.Channel;
 
-
-
-pub const div:  u8  = 125;       // 125MHz / 125 -> 1us per tick
-pub const wrap: u16 = 19_999;    // 20ms period  -> 50Hz (0 .. 19_999 = 20_000)
-pub const frac: u8  = 0;         // fraction is zero, because it's not needed for this project
+/// PWM constants for 50Hz
+pub const clk = struct {
+    pub const div:  u8  = 125;       // 125MHz / 125 -> 1us per tick
+    pub const wrap: u16 = 19_999;    // 20ms period  -> 50Hz (0 .. 19_999 = 20_000)
+    pub const frac: u8  = 0;         // fraction is zero, because it's not needed for this project
+};
 
 
 // total amount of pwm slices on the RP2040
@@ -41,13 +42,12 @@ var buffer: [NUM_SLICES]SliceBuffer = [_]SliceBuffer{.{}} ** NUM_SLICES;
 // PUBLIC API
 // ----------------------------------------
 
-/// mark slice as handled by ISR
-/// NOTE: documentation
+/// Register slice to be handled by ISR by adding it to the PWM buffer
 pub fn registerSlice(slice_num: SliceIndex) void {
     buffer[slice_num].active = true;
 }
 
-/// schedule a new level
+/// Schedule a PWM level by storing it in the PWM buffer
 pub fn setLevel(ch: Channel, slice: SliceIndex, level: u16) void {
     switch (ch) {
         .a => @atomicStore(u16, &buffer[slice].level_a, level, .monotonic),
@@ -55,8 +55,8 @@ pub fn setLevel(ch: Channel, slice: SliceIndex, level: u16) void {
     }
 }
 
-/// enable PWM wrap interrupt for one slice. Sets its bit in PWM INTE
-/// call this after the slice is fully configured (div, wrap, enabled)
+/// Enable PWM wrap interrupt for one slice.
+/// Sets its bit in PWM INTE call after the slice is fully configured (div, wrap, enabled)
 pub fn enableSliceIrq(slice_num: SliceIndex) void {
     const INTE = @as(*volatile u32, @ptrFromInt(PWM_BASE + INTE_OFFSET));
     INTE.* |= @as(u32, 1) << slice_num; // NOTE: here the small SliceIndex is needed instead of u32

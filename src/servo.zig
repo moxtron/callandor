@@ -9,7 +9,7 @@ const Pwm = pwm.Pwm;
 const Channel = pwm.Channel;
 const SliceIndex = pwmlib.SliceIndex;
 
-/// servo settings
+/// Settings for servo motor. Defines its range, the center point and if it is reversed.
 pub const ServoConfig = struct {
     min_us:    u16 = 1000,
     center_us: u16 = 1500,
@@ -30,8 +30,8 @@ pub const Servo = struct {
     pub fn init(pwm_struct: pwm.Pwm, config: ServoConfig) Servo {
         // setup the pwm slice
         const slice = pwm_struct.slice();
-        slice.set_clk_div(pwmlib.div, pwmlib.frac);
-        slice.set_wrap(pwmlib.wrap);
+        slice.set_clk_div(pwmlib.clk.div, pwmlib.clk.frac);
+        slice.set_wrap(pwmlib.clk.wrap);
         slice.enable();
         // direct write for initial position
         pwm_struct.set_level(config.center_us);
@@ -49,14 +49,15 @@ pub const Servo = struct {
     pub fn setPulse(self: *const Servo, us: u16) void {
         // `clamp` assures the value is in the safe range
         const level: u16 = switch (self.config.reversed) {
-            true  => 3000 - std.math.clamp(us, self.config.min_us, self.config.max_us),
+            true  => (self.config.max_us + self.config.min_us) - std.math.clamp(us, self.config.min_us, self.config.max_us),
             false => std.math.clamp(us, self.config.min_us, self.config.max_us),
         };
         pwmlib.setLevel(self.channel, self.slice, level);
 
     }
+    /// Centers the servo to the middle position, as specified in `self.config`
     pub fn center(self: *const Servo) void {
-        pwmlib.setLevel(self.config.center_us);
+        pwmlib.setLevel(self.channel, self.slice, self.config.center_us);
     }
     // maybe later add a setNormalized(f: f32[-1..1]) for mixing
 };
