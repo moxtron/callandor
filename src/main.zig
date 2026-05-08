@@ -2,7 +2,7 @@ const std = @import("std");
 const microzig = @import("microzig");
 const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
-
+const esc = @import("esc.zig");
 
 
 const rpi = microzig.hal;
@@ -74,6 +74,9 @@ fn setup_uart0() void {
 
 
 pub fn main() void {
+    esc.init(.{});
+    esc.calibrate(.{});
+
     setup_uart0();
     std.log.info("main() starting...",.{});
     // setting up the PWM pins
@@ -83,7 +86,6 @@ pub fn main() void {
     const aileron_right = Servo.init(pins.aileron_right, .{});
     const elevator      = Servo.init(pins.elevator, .{});
     const rudder        = Servo.init(pins.rudder, .{});
-    const esc           = Servo.init(pins.esc, .{});
 
     const front = ServoGroup(2).init(.{
         aileron_left,
@@ -113,11 +115,5 @@ pub fn main() void {
         back.center();
         sleep(2000);
 
-        esc.setPulse(level.min_us);
-        sleep(500);
-        esc.setPulse(level.max_us);
-        sleep(500);
-        esc.center();
-        sleep(2000);
     }
 }
