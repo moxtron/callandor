@@ -123,11 +123,11 @@ pub fn main() void {
         front.center();
         sleep(2000);
 
-        motor.setThrottle(1300);
+        motor.setThrottle(1300); // throttle works
         sleep(500);
-        motor.setThrottle(1200);
+        motor.setThrottle(1200); // a bit slower
         sleep(500);
-        motor.setThrottle(1100);
+        motor.setThrottle(1100); // motor stops
         sleep(500);
 
         back.setPulse(level.min_us);
