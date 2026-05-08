@@ -7,6 +7,7 @@ const pwm = rpi.pwm;
 
 const Pwm = pwm.Pwm;
 const Channel = pwm.Channel;
+const SliceIndex = pwmlib.SliceIndex;
 
 /// servo settings
 pub const ServoConfig = struct {
@@ -21,7 +22,7 @@ pub const ServoConfig = struct {
 pub const Servo = struct {
     pwm: pwm.Pwm,
     config: ServoConfig,
-    slice: u3,
+    slice: SliceIndex,
     channel: pwm.Channel,
 
 
@@ -36,7 +37,7 @@ pub const Servo = struct {
         pwm_struct.set_level(config.center_us);
 
         // prime the ISR buffer so it never applies a stale zero
-        pwmlib.setLevel(pwm_struct.channel, @as(u3, @truncate(pwm_struct.slice_number)), config.center_us);
+        pwmlib.setLevel(pwm_struct.channel, @as(SliceIndex, @truncate(pwm_struct.slice_number)), config.center_us);
         return .{
             .pwm = pwm_struct,
             .config = config,

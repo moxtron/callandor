@@ -17,21 +17,22 @@ pub const microzig_options: microzig.Options = .{
     },
 };
 
-fn irq_setup() void {
-    // tell the ISR which slices it manages
-    pwmlib.registerSlice(0); // aileron_left & aileron_right
-    pwmlib.registerSlice(1); // rudder & elevator
-    pwmlib.registerSlice(3); // ESC
+// fn irq_setup() void {
+//     // tell the ISR which slices it manages
+//     pwmlib.registerSlice(0); // aileron_left & aileron_right
+//     pwmlib.registerSlice(1); // rudder & elevator
+//     pwmlib.registerSlice(3); // ESC
 
-    // enable PWM wrap interrupt for each managed slice
-    pwmlib.enableSliceIrq(0);
-    pwmlib.enableSliceIrq(1);
-    pwmlib.enableSliceIrq(3);
+//     // enable PWM wrap interrupt for each managed slice
+//     pwmlib.enableSliceIrq(0);
+//     pwmlib.enableSliceIrq(1);
+//     pwmlib.enableSliceIrq(3);
 
-    // unmask PWM_IRQ_WRAP to go live
-    pwmlib.enableCpuIrq();
+//     // unmask PWM_IRQ_WRAP to go live
+//     pwmlib.enableCpuIrq();
 
-}
+// }
+
 
 // Compile-time pin configuration
 // DO NOT CHANGE! (except for a really, really good reason)
@@ -68,7 +69,7 @@ pub fn main() void {
 
     const aileron_left = Servo.init(pins.aileron_left, .{});
 
-    irq_setup();
+    pwmlib.initFromPinConfig(pin_config);
 
     while (true) {
         var i: u16 = 1000;

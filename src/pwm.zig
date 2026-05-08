@@ -4,9 +4,19 @@ const microzig = @import("microzig");
 const rpi = microzig.hal;
 const Channel = rpi.pwm.Channel;
 
+
+
 pub const div:  u8  = 125;       // 125MHz / 125 -> 1us per tick
 pub const wrap: u16 = 19_999;    // 20ms period  -> 50Hz (0 .. 19_999 = 20_000)
 pub const frac: u8  = 0;         // fraction is zero, because it's not needed for this project
+
+
+// total amount of pwm slices on the RP2040
+pub const NUM_SLICES: usize = 8;
+// set this to a size allowing for NUM_SLICES
+pub const SliceIndex = u3; // hardcoded for better ZLS
+// swap it for the latter function when upgrading to RP2350
+// pub const SliceIndex = std.meta.Int(.unsigned, std.math.log2(NUM_SLICES));
 
 
 // RP2040 PWM peripheral constants
@@ -16,9 +26,6 @@ const CC_OFFSET: u32   = 0x0C;   // compare/capture register within a slice
 const INTR_OFFSET: u32 = 0xA4;   // raw interrupt status  (write 1 to clear)
 const INTE_OFFSET: u32 = 0xA8;   // interrupt enable      (1 bit per slice)
 const INTS_OFFSET: u32 = 0xB0;   // interrupt status after INTE masking
-
-// total amount of pwm slices on the RP2040
-const NUM_SLICES: usize = 8;
 
 const SliceBuffer =  struct{
     level_a: u16 = 0,
@@ -36,12 +43,12 @@ var buffer: [NUM_SLICES]SliceBuffer = [_]SliceBuffer{.{}} ** NUM_SLICES;
 
 /// mark slice as handled by ISR
 /// NOTE: documentation
-pub fn registerSlice(slice_num: u3) void {
+pub fn registerSlice(slice_num: SliceIndex) void {
     buffer[slice_num].active = true;
 }
 
 /// schedule a new level
-pub fn setLevel(ch: Channel, slice: u3, level: u16) void {
+pub fn setLevel(ch: Channel, slice: SliceIndex, level: u16) void {
     switch (ch) {
         .a => @atomicStore(u16, &buffer[slice].level_a, level, .monotonic),
         .b => @atomicStore(u16, &buffer[slice].level_b, level, .monotonic),
@@ -50,9 +57,9 @@ pub fn setLevel(ch: Channel, slice: u3, level: u16) void {
 
 /// enable PWM wrap interrupt for one slice. Sets its bit in PWM INTE
 /// call this after the slice is fully configured (div, wrap, enabled)
-pub fn enableSliceIrq(slice_num: u3) void {
+pub fn enableSliceIrq(slice_num: SliceIndex) void {
     const INTE = @as(*volatile u32, @ptrFromInt(PWM_BASE + INTE_OFFSET));
-    INTE.* |= @as(u32, 1) << slice_num; // NOTE: here the u3 is needed instead of u32
+    INTE.* |= @as(u32, 1) << slice_num; // NOTE: here the small SliceIndex is needed instead of u32
 }
 
 pub fn enableCpuIrq() void {
@@ -80,7 +87,7 @@ pub fn handler() callconv(.c) void {
 
     // apply levels from the buffer for every fired slice
     while(fired != 0) {
-        const index: u3 = @truncate(@ctz(fired));
+        const index: SliceIndex = @truncate(@ctz(fired));
         fired &= fired - 1;
 
         const b = &buffer[index];
@@ -95,5 +102,27 @@ pub fn handler() callconv(.c) void {
         const cc_address = PWM_BASE + @as(u32, index) * SLICE_STRIDE + CC_OFFSET;
         const cc = @as(*volatile u32, @ptrFromInt(cc_address));
         cc.* = @as(u32, level_b) << 16 | level_a;
+    }
+}
+pub fn initFromPinConfig(comptime pin_config: anytype) void {
+
+    const active_slices = comptime blk: {
+        // the BitSet here is used for deduplication
+        var slices = std.StaticBitSet(NUM_SLICES).initEmpty();
+        for (std.meta.fields(@TypeOf(pin_config))) |field| {
+            if (@field(pin_config, field.name)) |config| {
+                if (config.function.is_pwm()) {
+                    // sets the bit at SLICE_NUM location
+                    slices.set(config.function.pwm_slice());
+                }
+            }
+        }
+        break :blk slices;
+    };
+    inline for (0..NUM_SLICES) |i| {
+        if (comptime active_slices.isSet(i)) {
+            registerSlice(@truncate(i));
+            enableSliceIrq(@truncate(i));
+        }
     }
 }
