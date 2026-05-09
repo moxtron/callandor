@@ -1,19 +1,14 @@
 //! This is a CRSF (Crossfire) protocol implementation in Zig.
 //! SOURCE: // https://github.com/tbs-fpv/tbs-crsf-spec/blob/main/crsf.md
 //!
-//! [ device address ] [ length ] [ type ] [ payload ... ] [ CRC8 ]
-//!|      1 byte      |  1 byte  |  1 byte | <=60 bytes   | 1 byte |
-//!
-//! --- HOW TO USE ---
-//! while (uart.readByte()) |byte| fsm.feed(byte);
-//! // might have to call this one in a loop if adding more frame types to ensure all data is actually consumed
-//! switch (fsm.takeFrame()) {
-//!     .none        => {},
-//!     .rc_channels => |ch| { /* update pilot input */ },
-//!     .link_stats  => |ls| { /* update telemetry display */ },
-//! }
+//! CRSF frame format:
+//!  [ device address ] [ length ] [ type ] [ payload ... ] [ CRC8 ]
+//! |      1 byte      |  1 byte  |  1 byte | <=60 bytes   | 1 byte |
+
 const std = @import("std");
 
+/// CRSF frame type identifiers as defined in the CRSF specification.
+/// Only `rc_channels` and `link_stats` are actively decoded; all others are ignored.
 const FrameType = enum(u8) {
     gps          = 0x02,
     vario        = 0x07,
@@ -33,6 +28,7 @@ const FrameType = enum(u8) {
 };
 
 // maybe expand the enums later if it turns out to be useful. for now, this is ok.
+/// Link quality telemetry from the ELRS transmitter. RSSI values are stored as positive integers; multiply by -1 for actual dBm.
 pub const LinkStats = struct {
     uplink_rssi_1: u8,          // Uplink RSSI Antenna 1 [dBm * -1]
     uplink_rssi_2: u8,          // Uplink RSSI Antenna 2 [dBm * -1]
@@ -46,17 +42,18 @@ pub const LinkStats = struct {
     downlink_snr: i8            // Downlink Signal-to-Noise Ratio (SNR) [dB]
 };
 
-/// This is the union type of the possible results of a decoded CRSF frame.
+/// Result of a decoded CRSF frame. Returns '.none' when no complete frame is available.
 pub const FrameResult = union(enum) {
     none,
     rc_channels: [16]u11,
     link_stats: LinkStats,
 };
 
+/// Internal FSM states for parsing a CRSF frame byte-by-byte.
 const CrsfState = enum { idle, length, frame_type, payload };
 
 
-/// This is a finite state machine (FSM) that decodes CRSF frames.
+/// Byte-by-byte CRSF frame decoder. Feed raw UART bytes via 'feed', then call 'takeFrame' to retrieve decoded frames.
 pub const CrsfFsm = struct {
     state: CrsfState      = .idle,
     buffer: [22]u8        = @splat(0), // takes the size of the biggest handled payload
@@ -66,10 +63,12 @@ pub const CrsfFsm = struct {
 
     // parsed, clean data for consumers
     // consume-on-read to prevent blocking or stale data
-    rc_channels: ?[16]u11  = null,
+    rc_channels: ?[16]u11  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Maybe add a wrapper later.
     link_stats: ?LinkStats = null,
 
-    /// Processes the CRSF data byte by byte as received by UART from the ELRS receiver.
+    // --- Public API ---
+
+    /// Advances the FSM with one byte from the UART stream. Updates 'rc_channels' or 'link_stats' on a complete, valid frame.
     pub fn feed(self: *CrsfFsm, byte: u8) void {
         switch(self.state) {
             .idle => {
@@ -147,7 +146,10 @@ pub const CrsfFsm = struct {
         }
         return .none;
     }
-    /// Decodes a `Link Statistics` frame and stores it.
+
+    // --- Frame Decoders ---
+
+    /// Parses a 'Link Statistics' payload from 'self.buffer' and returns the decoded struct.
     fn decodeLinkStats(self: *const CrsfFsm) LinkStats {
         return .{
             .uplink_rssi_1          = self.buffer[0],
@@ -162,7 +164,7 @@ pub const CrsfFsm = struct {
             .downlink_snr           = @bitCast(self.buffer[9]),
         };
     }
-    /// Decodes the CRSF `RC Channels` frame and stores it.
+    /// Unpacks 16 11-bit RC channel values from the packed 'RC Channels' payload in 'self.buffer'.
     fn decodeRcChannels(self: *const CrsfFsm) [16]u11 {
 
         var channels: [16]u11 = undefined;
@@ -194,8 +196,9 @@ pub const CrsfFsm = struct {
         return channels;
         //self.channels = channels;
     }
-    /// Calculates the CRC-8 checksum of the received frame.
-    /// Uses the type & payload fields and compares it to the received checksum.
+    // --- Internal Utilities ---
+
+    /// Computes the CRC-8/DVB-S2 checksum over 'frame_type' and the buffered payload bytes.
     fn crc8(self: *const CrsfFsm) u8 {
         const polynomial: u8 = 0xD5;
         const top_bit: u8 = 1 << 7;

@@ -5,13 +5,13 @@ const pwmlib = @import("pwm.zig");
 const rpi = microzig.hal;
 const pwm = rpi.pwm;
 
-/// Comptime config for the ESC controller
+/// Throttle pulse-width limits for the ESC. Defaults match the Ro-Control V2.
 pub const EscConfig = struct {
     min_us: u16 = 1100, // Ro-Control V2 lower limit
-    max_us: u16 = 1940, // Ro-Control V2 lower limit
+    max_us: u16 = 1940, // Ro-Control V2 upper limit
 };
 
-/// State of the ESC controller
+/// Lifecycle state of the ESC. Throttle commands are only accepted in 'armed'.
 pub const EscState = enum {
     uninitialized,
     arming,
@@ -19,6 +19,8 @@ pub const EscState = enum {
     disarmed,
 };
 
+/// Electronic Speed Controller driver. Manages arming, disarming, throttle output,
+/// and optional throttle-range calibration over a single PWM channel.
 pub const Esc = struct {
     pwm: pwm.Pwm,
     config: EscConfig,
@@ -26,8 +28,10 @@ pub const Esc = struct {
     channel: pwm.Channel,
     state: EscState,
 
-    /// This has to be the very first function call in `main()`.
-    /// Immediately outputs minimum throttle so the ESC doesn't receive a floating signal.
+    // --- Lifecycle ---
+
+    /// Configures the PWM slice and drives minimum throttle immediately.
+    /// Call as early as possible in 'main' so the ESC never sees a floating signal during boot.
     pub fn init(raw_pwm: pwm.Pwm, config: EscConfig, calibrate_mode: bool) Esc {
         // configure the PWM slice
         const slice = raw_pwm.slice();
@@ -66,8 +70,8 @@ pub const Esc = struct {
         self.state = .armed;
     }
 
-    /// One-time throttle range calibration. Only flash this once when setting up a new ESC.
-    /// After a long confirmation beep reflash regular firmware.
+    /// One-time ESC throttle-range calibration. Run only when commissioning a new ESC.
+    /// On the long confirmation beep, reflash with the standard (non-calibration) firmware.
     pub fn calibrate(self: *Esc) void {
         // max. throttle needs to be on the wire right after power on.
         // `init()` was called right before with the `calibrate_mode` flag and set it already, so this might be overkill.
@@ -82,15 +86,15 @@ pub const Esc = struct {
         self.state = .armed;
     }
 
-    /// Set throttle in microseconds. Clamped to [min_us ... max_us]
-    /// Only works in `armed` state.
+    // --- Control ---
+
+    /// Sets throttle in microseconds, clamped to [min_us, max_us]. Only accepted in 'armed' state.
     pub fn setThrottle(self: Esc, us: u16) void {
         if (self.state != .armed) return;
         self.writeLevel(us);
     }
 
-    /// Cut throttle and mark as disarmed. Requires rearming to use again.
-    /// Safety feature
+    /// Drops throttle to minimum and transitions to 'disarmed'. Call 'arm()' to re-enable throttle output.
     pub fn disarm(self: *Esc) void {
         self.writeLevel(self.config.min_us);
         self.state = .disarmed;
@@ -105,10 +109,12 @@ pub const Esc = struct {
         pwmlib.setLevel(self.channel, self.slice, level);
     }
 
+    /// Returns `true` when the ESC is in the `armed` state and ready to receive throttle commands.
     pub fn isArmed(self: Esc) bool {
         return self.state == .armed;
     }
 
+    /// Returns the current `EscState`.
     pub fn getState(self: Esc) EscState {
         return self.state;
     }

@@ -26,8 +26,7 @@ pub const microzig_options: microzig.Options = .{
     .logFn = uart.log,
 };
 
-/// Compile-time pin configuration
-/// DO NOT CHANGE! (except for a really, really good reason)
+/// Compile-time pin assignment for UART and PWM peripherals. Any change must match the physical PCB layout.
 const pin_config = rpi.pins.GlobalConfiguration{
     .GPIO0 = .{
         .name = "uart0_tx",
@@ -72,7 +71,9 @@ const pin_config = rpi.pins.GlobalConfiguration{
     },
 };
 
-/// only to be used for debugging
+// --- Hardware Initialization ---
+
+/// Configures UART0 at 115200 baud and registers it as the 'std.log' backend. Debug use only.
 fn setup_uart_logging() void {
     const uart0 = uart.instance.UART0;
     uart0.apply(.{
@@ -83,6 +84,7 @@ fn setup_uart_logging() void {
 
     std.log.info("UART successfully set up!", .{});
 }
+/// Configures UART1 at 420 000 baud for ELRS/CRSF receiver communication.
 fn setup_uart_crsf() uart.UART {
     const uart1 = uart.instance.UART1;
     uart1.apply(.{
