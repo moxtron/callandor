@@ -7,7 +7,7 @@ const pwm = rpi.pwm;
 
 const Pwm = pwm.Pwm;
 const Channel = pwm.Channel;
-const SliceIndex = pwmlib.SliceIndex;
+const @"pwmlib.SliceIndex" = pwmlib.SliceIndex;
 
 /// Settings for servo motor. Defines its range, the center point and if it is reversed.
 pub const ServoConfig = struct {
@@ -18,7 +18,7 @@ pub const ServoConfig = struct {
 };
 
 
-/// A group of servos that can be controlled together.
+/// Generic container for N servos. Broadcasts 'setPulse' and 'center' commands to all members.
 pub fn ServoGroup(comptime N: usize) type {
     return struct {
         servos: [N]Servo,
@@ -26,17 +26,20 @@ pub fn ServoGroup(comptime N: usize) type {
 
         const Self = @This();
 
+        /// Wraps a fixed-size array of pre-initialized `Servo` instances into a group.
         pub fn init(servos: [N]Servo) Self {
             return .{
                 .servos = servos,
             };
         }
 
+        /// Sends the same pulse width to every servo in the group.
         pub fn setPulse(self: Self, us: u16) void {
             for (self.servos) |servo| {
                 servo.setPulse(us);
             }
         }
+        /// Moves every servo in the group to its configured center position.
         pub fn center(self: Self) void {
             for (self.servos) |servo| {
                 servo.center();
@@ -45,15 +48,17 @@ pub fn ServoGroup(comptime N: usize) type {
     };
 }
 
-/// Creates a Servo struct with bindings to a specific PWM channel.
+/// Single servo bound to a PWM channel. Clamps all pulse widths to 'config' range and applies optional reversal.
 pub const Servo = struct {
     pwm: pwm.Pwm,
     config: ServoConfig,
-    slice: SliceIndex,
+    slice: pwmlib.SliceIndex,
     channel: pwm.Channel,
 
 
-    /// Sets up the PWM slice for the new servo and centers the motor.
+    // --- Lifecycle ---
+
+    /// Configures the PWM slice for this servo and centers it to 'config.center_us'.
     pub fn init(pwm_struct: pwm.Pwm, config: ServoConfig) Servo {
         // setup the pwm slice
         const slice = pwm_struct.slice();
@@ -64,7 +69,7 @@ pub const Servo = struct {
         pwm_struct.set_level(config.center_us);
 
         // prime the ISR buffer so it never applies a stale zero
-        pwmlib.setLevel(pwm_struct.channel, @as(SliceIndex, @truncate(pwm_struct.slice_number)), config.center_us);
+        pwmlib.setLevel(pwm_struct.channel, @as(pwmlib.SliceIndex, @truncate(pwm_struct.slice_number)), config.center_us);
         return .{
             .pwm = pwm_struct,
             .config = config,
@@ -73,7 +78,9 @@ pub const Servo = struct {
         };
 
     }
-    /// Sets a new PWM level. Safe to use at any rate, as it is registered with the PWM interrupt handler.
+    // --- Control ---
+
+    /// Outputs a pulse of 'us' microseconds, clamped to [min_us, max_us]. Applies reversal if configured.
     pub fn setPulse(self: *const Servo, us: u16) void {
         // `clamp` assures the value is in the safe range
         const level: u16 = switch (self.config.reversed) {
