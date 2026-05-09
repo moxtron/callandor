@@ -10,7 +10,6 @@ pub fn build(b: *std.Build) void {
     const mb = MicroBuild.init(b, mz_dep) orelse return;
 
     // --- build options ---
-    // - calibrate -
     const calibrate = b.option(bool, "calibrate", "Run ESC throttle range calibration on boot") orelse false;
     const options = b.addOptions();
     options.addOption(bool, "calibrate", calibrate);
