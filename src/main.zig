@@ -31,9 +31,17 @@ const pin_config = rpi.pins.GlobalConfiguration{
         .name = "uart0_tx",
         .function = .UART0_TX
     },
+    .GPIO4 = .{
+        .name = "crsf_rx",
+        .function = .UART0_RX
+    },
+    .GPIO5 = .{
+        .name = "crsf_tx",
+        .function = .UART1_TX
+    },
     .GPIO1 = .{
         .name = "uart0_rx",
-        .function = .UART0_RX
+        .function = .UART1_RX
     },
     .GPIO16 = .{
         .name = "aileron_left",
@@ -63,7 +71,7 @@ const pin_config = rpi.pins.GlobalConfiguration{
 };
 
 /// only to be used for debugging
-fn setup_uart0() void {
+fn setup_uart_logging() void {
     const uart0 = uart.instance.UART0;
     uart0.apply(.{
         .baud_rate = 115200,
@@ -73,71 +81,26 @@ fn setup_uart0() void {
 
     std.log.info("UART successfully set up!", .{});
 }
-
+fn setup_uart_crsf() uart.UART {
+    const uart1 = uart.instance.UART1;
+    uart1.apply(.{
+        .baud_rate = 420_000,
+        .clock_config = rpi.clock_config,
+    });
+    return uart1;
+}
 
 pub fn main() void {
     // setting up the PWM pins
-    const pins = pin_config.apply();
+    _ = pin_config.apply();
 
-    // initialize ESC
-    var motor = esc.Esc.init(pins.esc, .{}, calibrate_mode);
-    // initialize servos
-    const aileron_left  = Servo.init(pins.aileron_left, .{});
-    const aileron_right = Servo.init(pins.aileron_right, .{});
-    const elevator      = Servo.init(pins.elevator, .{});
-    const rudder        = Servo.init(pins.rudder, .{});
-
-    // initialize interrupts
-    pwmlib.initFromPinConfig(pin_config);
-
-    // arm/calibrate the ESC
-    switch (calibrate_mode) {
-        false => motor.arm(),
-        true  => motor.calibrate(),
-    }
-
-
-    // setup debug on uart0
-    setup_uart0();
-    std.log.info("main() starting...",.{});
-
-    // group the servos for easier testing
-    const front = ServoGroup(2).init(.{
-        aileron_left,
-        aileron_right,
-    });
-    const back = ServoGroup(2).init(.{
-        elevator,
-        rudder,
-    });
-
-
-
-    const level = ServoConfig{};
+    // --------------------
+    // # --- UART setup ---
+    // --------------------
+    setup_uart_logging(); // logging
+    const crsf_uart = setup_uart_crsf(); // crsf
+    _ = crsf_uart;
     while (true) {
-
-        front.setPulse(level.min_us);
-        sleep(500);
-        front.setPulse(level.max_us);
-        sleep(500);
-        front.center();
-        sleep(2000);
-
-        motor.setThrottle(1300); // throttle works
-        sleep(500);
-        motor.setThrottle(1200); // a bit slower
-        sleep(500);
-        motor.setThrottle(1100); // motor stops
-        sleep(500);
-
-        back.setPulse(level.min_us);
-        sleep(500);
-        back.setPulse(level.max_us);
-        sleep(500);
-        back.center();
-        sleep(2000);
-
-
 
     }
 }
