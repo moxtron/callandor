@@ -26,7 +26,7 @@ pub const microzig_options: microzig.Options = .{
     .logFn = uart.log,
 };
 
-/// Compile-time pin assignment for UART and PWM peripherals. Any change must match the physical PCB layout.
+/// Compile-time pin assignment for UART and PWM peripherals.
 const pin_config = rpi.pins.GlobalConfiguration{
     .GPIO0 = .{
         .name = "uart0_tx",
@@ -84,7 +84,7 @@ fn setup_uart_logging() void {
 
     std.log.info("UART successfully set up!", .{});
 }
-/// Configures UART1 at 420 000 baud for ELRS/CRSF receiver communication.
+/// Configures UART1 at 420_000 baud for ELRS/CRSF receiver communication.
 fn setup_uart_crsf() uart.UART {
     const uart1 = uart.instance.UART1;
     uart1.apply(.{

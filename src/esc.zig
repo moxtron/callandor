@@ -19,7 +19,7 @@ pub const EscState = enum {
     disarmed,
 };
 
-/// Electronic Speed Controller driver. Manages arming, disarming, throttle output,
+/// Electronic Speed Controller (ESC) driver. Manages arming, disarming, throttle output,
 /// and optional throttle-range calibration over a single PWM channel.
 pub const Esc = struct {
     pwm: pwm.Pwm,
@@ -70,8 +70,8 @@ pub const Esc = struct {
         self.state = .armed;
     }
 
-    /// One-time ESC throttle-range calibration. Run only when commissioning a new ESC.
-    /// On the long confirmation beep, reflash with the standard (non-calibration) firmware.
+    /// One-time ESC throttle-range calibration. Run only when setting up a new ESC.
+    /// After the long confirmation beep, reflash with the standard (non-calibration) firmware.
     pub fn calibrate(self: *Esc) void {
         // max. throttle needs to be on the wire right after power on.
         // `init()` was called right before with the `calibrate_mode` flag and set it already, so this might be overkill.

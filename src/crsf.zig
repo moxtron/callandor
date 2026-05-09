@@ -27,7 +27,6 @@ const FrameType = enum(u8) {
     _,
 };
 
-// maybe expand the enums later if it turns out to be useful. for now, this is ok.
 /// Link quality telemetry from the ELRS transmitter. RSSI values are stored as positive integers; multiply by -1 for actual dBm.
 pub const LinkStats = struct {
     uplink_rssi_1: u8,          // Uplink RSSI Antenna 1 [dBm * -1]
@@ -51,7 +50,6 @@ pub const FrameResult = union(enum) {
 
 /// Internal FSM states for parsing a CRSF frame byte-by-byte.
 const CrsfState = enum { idle, length, frame_type, payload };
-
 
 /// Byte-by-byte CRSF frame decoder. Feed raw UART bytes via 'feed', then call 'takeFrame' to retrieve decoded frames.
 pub const CrsfFsm = struct {
@@ -131,7 +129,7 @@ pub const CrsfFsm = struct {
     }
 
     /// Returns the latest decoded CRSF frame.
-    /// If there is an `RC Channels` frame it has priority. Otherwise it returns `Link Statistics`
+    /// If there is an `RC Channels` frame it has priority. Otherwise it returns `Link Statistics`.
     ///
     /// NOTE: this approach works fine now, but if more frame types are collected some lower priority ones might get stale or never used.
     pub fn takeFrame(self: *CrsfFsm) FrameResult {
@@ -164,7 +162,7 @@ pub const CrsfFsm = struct {
             .downlink_snr           = @bitCast(self.buffer[9]),
         };
     }
-    /// Unpacks 16 11-bit RC channel values from the packed 'RC Channels' payload in 'self.buffer'.
+    /// Unpacks 16 11bit RC channel values from the packed 'RC Channels' payload in 'self.buffer'.
     fn decodeRcChannels(self: *const CrsfFsm) [16]u11 {
 
         var channels: [16]u11 = undefined;
@@ -227,7 +225,8 @@ pub const CrsfFsm = struct {
         }
         return crc;
     }
-    /// Resets the state machine to .idle and deletes all the entries which aren't overwritten anyway.
+    /// Resets the state machine to the `.idle` state.
+    /// Deletes the entries which are not overwritten in the next round anyway.
     fn reset(self: *CrsfFsm) void {
         self.state = .idle;
         self.index = 0;

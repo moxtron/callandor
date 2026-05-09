@@ -7,7 +7,7 @@ const pwm = rpi.pwm;
 
 const Pwm = pwm.Pwm;
 const Channel = pwm.Channel;
-const SliceIndex = pwmlib.SliceIndex;
+const @"pwmlib.SliceIndex" = pwmlib.SliceIndex;
 
 /// Settings for servo motor. Defines its range, the center point and if it is reversed.
 pub const ServoConfig = struct {
@@ -52,7 +52,7 @@ pub fn ServoGroup(comptime N: usize) type {
 pub const Servo = struct {
     pwm: pwm.Pwm,
     config: ServoConfig,
-    slice: SliceIndex,
+    slice: pwmlib.SliceIndex,
     channel: pwm.Channel,
 
 
@@ -69,7 +69,7 @@ pub const Servo = struct {
         pwm_struct.set_level(config.center_us);
 
         // prime the ISR buffer so it never applies a stale zero
-        pwmlib.setLevel(pwm_struct.channel, @as(SliceIndex, @truncate(pwm_struct.slice_number)), config.center_us);
+        pwmlib.setLevel(pwm_struct.channel, @as(pwmlib.SliceIndex, @truncate(pwm_struct.slice_number)), config.center_us);
         return .{
             .pwm = pwm_struct,
             .config = config,
