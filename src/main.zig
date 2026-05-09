@@ -3,6 +3,7 @@ const microzig = @import("microzig");
 const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
+const crsf = @import("crsf.zig");
 
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
@@ -12,6 +13,7 @@ const rpi = microzig.hal;
 const time = rpi.time;
 const uart = rpi.uart;
 const sleep = time.sleep_ms;
+const log = std.log;
 
 const Servo = servo.Servo;
 const ServoConfig = servo.ServoConfig;
@@ -31,16 +33,16 @@ const pin_config = rpi.pins.GlobalConfiguration{
         .name = "uart0_tx",
         .function = .UART0_TX
     },
-    .GPIO4 = .{
-        .name = "crsf_rx",
-        .function = .UART0_RX
-    },
-    .GPIO5 = .{
-        .name = "crsf_tx",
-        .function = .UART1_TX
-    },
     .GPIO1 = .{
         .name = "uart0_rx",
+        .function = .UART0_RX
+    },
+    .GPIO8 = .{
+        .name = "crsf_rx",
+        .function = .UART1_TX
+    },
+    .GPIO9 = .{
+        .name = "crsf_tx",
         .function = .UART1_RX
     },
     .GPIO16 = .{
@@ -94,13 +96,44 @@ pub fn main() void {
     // setting up the PWM pins
     _ = pin_config.apply();
 
-    // --------------------
-    // # --- UART setup ---
-    // --------------------
+    // uart & crsf setup
     setup_uart_logging(); // logging
-    const crsf_uart = setup_uart_crsf(); // crsf
-    _ = crsf_uart;
-    while (true) {
+    const crsf_uart = setup_uart_crsf();
+    var fsm = crsf.CrsfFsm{};
 
+
+
+    while (true) {
+        // drain all available bytes into the FSM
+        while (true) {
+            const received = crsf_uart.read_word() catch blk: {
+                // log the error, clear it and keep going
+                //std.log.warn("UART1_RX Error: {}", .{err});
+                crsf_uart.clear_errors();
+                break :blk null;
+            };
+            const byte = received orelse break;
+            fsm.feed(byte);
+        }
+
+        // consume one decoded frame per loop
+        switch (fsm.takeFrame()) {
+            .none => {},
+
+            .rc_channels => |ch| {
+                std.log.info(
+                    "CH: {d} {d} {d} {d} | {d} {d} {d} {d}",
+                    .{ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7]}
+                );
+            },
+            .link_stats => |ls| {
+                std.log.info("LQ: {d}%  RSSI1: -{d}dBm  SNR: {d}dB", .{
+                    ls.uplink_link_quality,
+                    ls.uplink_rssi_1,
+                    ls.uplink_snr,
+                });
+            },
+
+        }
     }
 }
