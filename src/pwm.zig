@@ -40,9 +40,9 @@ const SliceBuffer =  struct{
 /// On interrupt they get later written into the pwm registers
 var buffer: [NUM_SLICES]SliceBuffer = [_]SliceBuffer{.{}} ** NUM_SLICES;
 
-// ----------------------------------------
-// PUBLIC API
-// ----------------------------------------
+
+// --- Interrupt Handler API ---
+
 
 /// Register slice to be handled by ISR by adding it to the PWM buffer
 pub fn registerSlice(slice_num: SliceIndex) void {
