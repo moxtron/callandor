@@ -4,7 +4,7 @@ const microzig = @import("microzig");
 const rpi = microzig.hal;
 const Channel = rpi.pwm.Channel;
 
-/// PWM constants for 50Hz
+/// Clock divisor and wrap settings that produce 1μs ticks and a 50Hz (20ms) wrap period.
 pub const clk = struct {
     pub const div:  u8  = 125;       // 125MHz / 125 -> 1us per tick
     pub const wrap: u16 = 19_999;    // 20ms period  -> 50Hz (0 .. 19_999 = 20_000)
@@ -12,24 +12,28 @@ pub const clk = struct {
 };
 
 
-/// Defines the total amount of PWM slices the microcontroller provides
+/// Total number of hardware PWM slices on the microcontroller.
 pub const NUM_SLICES: usize = 8;
-// set this to a size allowing for NUM_SLICES
-/// use this for slice numbers. Must be adjusted to fit `log2(NUM_SLICES)` bits.
+/// Integer type wide enough to index any PWM slice. Update the bit width if 'NUM_SLICES' ever changes.
 pub const SliceIndex = u3; // hardcoded for better ZLS
 
-// swap it for the latter function when upgrading to RP2350
+// NOTE: Use this to make the flight controller compatible with RP2350. Calculates the bit width dynamically.
 // pub const SliceIndex = std.meta.Int(.unsigned, std.math.log2(NUM_SLICES));
 
 
-// RP2040 PWM peripheral constants
-const PWM_BASE: u32    = 0x4005_0000;
-const SLICE_STRIDE: u32 = 0x14;  // each slice block is 20 bytes
-const CC_OFFSET: u32   = 0x0C;   // compare/capture register within a slice
-const INTR_OFFSET: u32 = 0xA4;   // raw interrupt status  (write 1 to clear)
-const INTE_OFFSET: u32 = 0xA8;   // interrupt enable      (1 bit per slice)
-const INTS_OFFSET: u32 = 0xB0;   // interrupt status after INTE masking
+// --- PWM Register Map ---
 
+const PWM_BASE:     u32 = 0x4005_0000;
+const SLICE_STRIDE: u32 = 0x14;  // each slice block is 20 bytes
+const CC_OFFSET:    u32 = 0x0C;   // compare/capture register within a slice
+const INTR_OFFSET:  u32 = 0xA4;   // raw interrupt status  (write 1 to clear)
+const INTE_OFFSET:  u32 = 0xA8;   // interrupt enable      (1 bit per slice)
+const INTS_OFFSET:  u32 = 0xB0;   // interrupt status after INTE masking
+
+// --- State ---
+
+/// Per-slice staging area written by the main loop and consumed by the ISR.
+/// `active` gates whether the ISR touches the slice at all.
 const SliceBuffer =  struct{
     level_a: u16 = 0,
     level_b: u16 = 0,
@@ -37,12 +41,11 @@ const SliceBuffer =  struct{
 };
 
 /// PWM values are written to this buffer.
-/// On interrupt they get later written into the pwm registers
+/// On interrupt they get later written into the PWM registers
 var buffer: [NUM_SLICES]SliceBuffer = [_]SliceBuffer{.{}} ** NUM_SLICES;
 
 
 // --- Interrupt Handler API ---
-
 
 /// Register slice to be handled by ISR by adding it to the PWM buffer
 pub fn registerSlice(slice_num: SliceIndex) void {
@@ -57,15 +60,14 @@ pub fn setLevel(ch: Channel, slice: SliceIndex, level: u16) void {
     }
 }
 
-/// Enable PWM wrap interrupt for one slice.
-/// Sets its bit in PWM INTE call after the slice is fully configured (div, wrap, enabled)
+/// Enables the wrap interrupt for one slice by setting its bit in INTE.
+/// Must be called after the slice is fully configured (div, wrap, enabled).
 pub fn enableSliceIrq(slice_num: SliceIndex) void {
     const INTE = @as(*volatile u32, @ptrFromInt(PWM_BASE + INTE_OFFSET));
     INTE.* |= @as(u32, 1) << slice_num; // NOTE: here the small SliceIndex is needed instead of u32
 }
 
-/// Enable IRQ interrupts for PWM.
-/// This is the very last step.
+/// Unmasks PWM_IRQ_WRAP in the CPU NVIC. Call once, after all slices are configured and enabled.
 pub fn enableCpuIrq() void {
     // --- old version ---
     // NVIC ISER0: writing a 1 to bit N enables IRQ N
@@ -76,10 +78,10 @@ pub fn enableCpuIrq() void {
     microzig.cpu.interrupt.enable(.PWM_IRQ_WRAP);
 }
 
-/// for verifying the handler fires at the correct rate
+/// Debug counter. Incremented on every ISR fire; at 50Hz with N active slices it ticks at 50N/s.
 pub var fire_counter: usize = 0;
 
-/// PWM interrupt handler. Fires at 50Hz for each registered slice.
+/// ISR / PWM interrupt handler. Fires at 50Hz for each registered slice.
 ///
 /// At the start of each new 20ms cycle the counter is just reset to 0.
 /// Updating CC here is glitch-free, as there is no ongoing pulse.
@@ -103,6 +105,7 @@ pub fn handler() callconv(.c) void {
         //debug
         fire_counter += 1;
 
+        // atomicLoad might not be necessary here, but it's safer to use.
         const level_a = @atomicLoad(u16, &b.level_a, .monotonic);
         const level_b = @atomicLoad(u16, &b.level_b, .monotonic);
 
@@ -116,7 +119,7 @@ pub fn handler() callconv(.c) void {
 
 /// Sets up the PWM interrupts using the `GlobalConfiguration` at comptime.
 /// No overhead during runtime.
-pub fn initFromPinConfig(comptime pin_config: anytype) void {
+pub fn init(comptime pin_config: anytype) void {
     const active_slices = comptime blk: {
         // the BitSet here is used for deduplication
         var slices = std.StaticBitSet(NUM_SLICES).initEmpty();
