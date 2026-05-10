@@ -24,6 +24,7 @@ const FrameType = enum(u8) {
     device_info  = 0x29,
     param_entry  = 0x2B,
     command      = 0x32,
+    unknown      = 0xFF, // for debugging only
     _,
 };
 
@@ -116,10 +117,7 @@ pub const CrsfFsm = struct {
                             .link_stats => {
                                 self.link_stats = self.decodeLinkStats();
                             },
-                            else => {
-                                // this shouldnt happen normally, but errors occur
-                                self.reset();
-                            }
+                            else => self.reset(), // generates a compile error if there are more than 2 frame types in use
                         }
                         self.reset();
                     } else {
@@ -184,7 +182,7 @@ pub const CrsfFsm = struct {
 
             // comptime here evaluates the if-condition during comptime,
             // allowing for the inline for loop to be fully unrolled.
-            const word: u32 = if (comptime bit_shift + 11 > 16) blk: { // block syntax FTW
+            const word: u32 = if (bit_shift + 11 > 16) blk: { // block syntax FTW
                 const b2: u32 = payload[byte_pos + 2];
                 break :blk b0 | (b1 << 8) | (b2 << 16); // here we have a total of 24bits
             } else blk: {
@@ -194,7 +192,6 @@ pub const CrsfFsm = struct {
             channels[i] = @truncate((word >> bit_shift) & 0x7FF);
         }
         return channels;
-        //self.channels = channels;
     }
     // --- Internal Utilities ---
 
@@ -234,6 +231,6 @@ pub const CrsfFsm = struct {
         self.index = 0;
         // the following are not strictly needed, but help a lot when debugging
         self.length = 0;
-        self.frame_type = undefined;
+        self.frame_type = .unknown;
     }
 };
