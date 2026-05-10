@@ -22,7 +22,6 @@ pub const ServoConfig = struct {
 pub fn ServoGroup(comptime N: usize) type {
     return struct {
         servos: [N]Servo,
-        count: usize = 0,
 
         const Self = @This();
 
