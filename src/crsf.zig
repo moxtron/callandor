@@ -76,7 +76,9 @@ pub const CrsfFsm = struct {
             },
             .length => {
                 // guards against accessing out-of-bounds buffer memory
-                if (byte > self.buffer.len + 2 or byte < 4) {
+                const MAX_FRAME_SIZE: u8 = self.buffer.len + 2; // biggest handled frame size
+                const MIN_FRAME_SIZE: u8 = 4;   // smallest valid frame size in CRSF
+                if (byte > MAX_FRAME_SIZE or byte < MIN_FRAME_SIZE) {
                     self.reset();
                     return;
                 }
@@ -166,7 +168,7 @@ pub const CrsfFsm = struct {
     fn decodeRcChannels(self: *const CrsfFsm) [16]u11 {
 
         var channels: [16]u11 = undefined;
-        const payload = self.buffer[0..22]; // for readability
+        const payload = self.buffer[0 .. self.length - 2]; // for readability
 
         inline for(0..16) |i| {
             const bit_pos  = i * 11;
