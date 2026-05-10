@@ -37,11 +37,11 @@ const pin_config = rpi.pins.GlobalConfiguration{
         .function = .UART0_RX
     },
     .GPIO8 = .{
-        .name = "crsf_rx",
+        .name = "elrs_tx",  // connects to RX on ELRS receiver
         .function = .UART1_TX
     },
     .GPIO9 = .{
-        .name = "crsf_tx",
+        .name = "elrs_rx",  // connects to TX on ELRS receiver
         .function = .UART1_RX
     },
     .GPIO16 = .{
