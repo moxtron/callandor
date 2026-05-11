@@ -24,7 +24,7 @@ pub const SliceIndex = u3; // hardcoded for better ZLS
 
 // --- PWM Register Map ---
 
-const PWM_BASE:     u32 = 0x4005_0000; // microzig.chip.peripherals.PWM
+const PWM_BASE:     u32 = @intFromPtr(microzig.chip.peripherals.PWM); // allows for easy switch to RP2350
 const SLICE_STRIDE: u32 = 0x14;  // each slice block is 20 bytes
 const CC_OFFSET:    u32 = 0x0C;   // compare/capture register within a slice
 const INTR_OFFSET:  u32 = 0xA4;   // raw interrupt status  (write 1 to clear)
