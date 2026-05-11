@@ -83,7 +83,7 @@ pub const Servo = struct {
         // `clamp` assures the value is in the safe range
         const clamped = std.math.clamp(us, self.config.min_us, self.config.max_us);
         const level: u16 = if (self.config.reversed)
-            std.math.clamp(@as(i32, 2) * self.config.center_us - clamped, self.config.min_us, self.config.max_us) // 2 * center_us - clamped, works if center is asymetric
+            self.config.max_us + self.config.min_us - clamped
         else
             clamped;
         pwmlib.setLevel(self.channel, self.slice, level);
