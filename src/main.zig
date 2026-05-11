@@ -129,10 +129,12 @@ pub fn main() void {
     const level = ServoConfig{};    // easy access to default servo levels
 
     // TODO: drive servos & motor from `mixer.zig`
-    _ = front;
-    _ = rear;
-    _ = level;
 
+    // debug counters
+    var uart_errors: usize = 0;
+    var rc_frames: usize = 0;
+    var ls_frames: usize = 0;
+    var before = time.get_time_since_boot();
     // # --- MAIN LOOP ---
     while (true) {
         // drain all available bytes into the FSM
@@ -141,6 +143,7 @@ pub fn main() void {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
                 uart_crsf.clear_errors();
+                uart_errors += 1;
                 break :blk null;
             };
             const byte = received orelse break;
@@ -154,20 +157,26 @@ pub fn main() void {
                 .none => break,
 
                 .rc_channels => |ch| {
-                    std.log.info(
-                        "CH: {d} {d} {d} {d} | {d} {d} {d} {d}",
-                        .{ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7]}
-                    );
+                    rc_frames += 1;
+                    front.setPulse((level.min_us-177) + ch[0]);
+                    rear.setPulse((level.min_us-177) + ch[1]);
                 },
                 .link_stats => |ls| {
-                    std.log.info("LQ: {d}%  RSSI1: -{d}dBm  SNR: {d}dB", .{
-                        ls.uplink_link_quality,
-                        ls.uplink_rssi_1,
-                        ls.uplink_snr,
-                    });
+                    _ = ls;
+                    ls_frames += 1;
                 },
 
             }
+        }
+
+        // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
+        const now = time.get_time_since_boot();
+        if (now.diff(before).to_us() > 1_000_000) {
+            std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
+            rc_frames = 0;
+            ls_frames = 0;
+            uart_errors = 0;
+            before = time.get_time_since_boot();
         }
     }
 }
