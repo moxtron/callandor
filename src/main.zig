@@ -127,7 +127,8 @@ pub fn main() void {
         rudder,
     });
     const level = ServoConfig{};    // easy access to default servo levels
-
+    _ = front;
+    _ = rear;
     // TODO: drive servos & motor from `mixer.zig`
 
     // debug counters
@@ -158,8 +159,7 @@ pub fn main() void {
 
                 .rc_channels => |ch| {
                     rc_frames += 1;
-                    front.setPulse((level.min_us-177) + ch[0]);
-                    rear.setPulse((level.min_us-177) + ch[1]);
+                    aileron_left.setPulse((level.min_us - 200) + @as(u16, ch[0]));
                 },
                 .link_stats => |ls| {
                     _ = ls;
