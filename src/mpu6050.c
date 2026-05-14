@@ -48,7 +48,6 @@
 #define AFS_SEL_VALUE       (1 << 3)  // = 0x08
 
 // returns true if write succeeded, false if failed
-// expects exactly 2 bytes to be written
 // static because it's just an internal helper function
 static bool i2c_write_config(const uint8_t *config, int length) {
     int result = i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, config, length, false);
