@@ -5,19 +5,9 @@ const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
 
+// --- Compile-time build options ---
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
-
-
-const rpi = microzig.hal;
-const time = rpi.time;
-const uart = rpi.uart;
-const sleep = time.sleep_ms;
-const log = std.log;
-
-const Servo = servo.Servo;
-const ServoConfig = servo.ServoConfig;
-const ServoGroup = servo.ServoGroup;
 
 pub const microzig_options: microzig.Options = .{
     .interrupts = .{
@@ -37,11 +27,11 @@ const pin_config = rpi.pins.GlobalConfiguration{
         .function = .UART0_RX
     },
     .GPIO8 = .{
-        .name = "crsf_rx",
+        .name = "elrs_tx",  // connects to RX on ELRS receiver
         .function = .UART1_TX
     },
     .GPIO9 = .{
-        .name = "crsf_tx",
+        .name = "elrs_rx",  // connects to TX on ELRS receiver
         .function = .UART1_RX
     },
     .GPIO16 = .{
@@ -71,6 +61,15 @@ const pin_config = rpi.pins.GlobalConfiguration{
     },
 };
 
+// --- Aliases ---
+const rpi = microzig.hal;
+const time = rpi.time;
+const uart = rpi.uart;
+
+const Servo = servo.Servo;
+const ServoConfig = servo.ServoConfig;
+const ServoGroup = servo.ServoGroup;
+
 // --- Hardware Initialization ---
 
 /// Configures UART0 at 115200 baud and registers it as the 'std.log' backend. Debug use only.
@@ -95,47 +94,89 @@ fn setup_uart_crsf() uart.UART {
 }
 
 pub fn main() void {
-    // setting up the PWM pins
-    _ = pin_config.apply();
+
+    // # --- Setup ---
+    const pins = pin_config.apply();
+
+    // initialize ESC
+    var motor = esc.Esc.init(pins.esc, .{}, calibrate_mode);
+    // initialize servos
+    const aileron_left  = Servo.init(pins.aileron_left,  .{});
+    const aileron_right = Servo.init(pins.aileron_right, .{});
+    const elevator      = Servo.init(pins.elevator,      .{});
+    const rudder        = Servo.init(pins.rudder,        .{});
+
+    // initialize interrupts
+    pwmlib.init(pin_config);
+
+    // arm / calibrate ESC
+    if (calibrate_mode) motor.calibrate() else motor.arm();
 
     // uart & crsf setup
     setup_uart_logging(); // logging
-    const crsf_uart = setup_uart_crsf();
+    const uart_crsf = setup_uart_crsf();
     var fsm = crsf.CrsfFsm{};
 
+    // group servos for easier testing
+    const front = ServoGroup(2).init(.{
+        aileron_left,
+        aileron_right,
+    });
+    const rear = ServoGroup(2).init(.{
+        elevator,
+        rudder,
+    });
+    const level = ServoConfig{};    // easy access to default servo levels
+    _ = front;
+    _ = rear;
+    // TODO: drive servos & motor from `mixer.zig`
 
+    // debug counters
+    var uart_errors: usize = 0;
+    var rc_frames: usize = 0;
+    var ls_frames: usize = 0;
+    var before = time.get_time_since_boot();
 
+    // # --- MAIN LOOP ---
     while (true) {
         // drain all available bytes into the FSM
         while (true) {
-            const received = crsf_uart.read_word() catch blk: {
+            const received = uart_crsf.read_word() catch blk: {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
-                crsf_uart.clear_errors();
+                uart_crsf.clear_errors();
+                uart_errors += 1;
                 break :blk null;
             };
             const byte = received orelse break;
             fsm.feed(byte);
         }
 
-        // consume one decoded frame per loop
-        switch (fsm.takeFrame()) {
-            .none => {},
-
-            .rc_channels => |ch| {
-                std.log.info(
-                    "CH: {d} {d} {d} {d} | {d} {d} {d} {d}",
-                    .{ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7]}
-                );
-            },
-            .link_stats => |ls| {
-                std.log.info("LQ: {d}%  RSSI1: -{d}dBm  SNR: {d}dB", .{
-                    ls.uplink_link_quality,
-                    ls.uplink_rssi_1,
-                    ls.uplink_snr,
-                });
-            },
+        // --- CRSF consumers ---
+        // the new approach is to only poll each type of CRSF frame once per main loop iteration.
+        if (fsm.takeRcChannels()) |ch| {
+            rc_frames += 1; // debug
+            aileron_left.setPulse   ((level.min_us - 200) + @as(u16, ch[0]));
+            aileron_right.setPulse  ((level.min_us - 200) + @as(u16, ch[0]));
+            elevator.setPulse       ((level.min_us - 200) + @as(u16, ch[1]));
+            rudder.setPulse         ((level.min_us - 200) + @as(u16, ch[3]));
+            motor.setThrottle       ((level.min_us - 200) + @as(u16, ch[2]));
 
         }
+        if (fsm.takeLinkStats()) |ls| {
+            ls_frames += 1;
+            _ = ls;
+        }
+        // --- debug ---
+        // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
+        const now = time.get_time_since_boot();
+        if (now.diff(before).to_us() > 1_000_000) {
+            std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
+            rc_frames = 0;
+            ls_frames = 0;
+            uart_errors = 0;
+            before = time.get_time_since_boot();
+        }
+        // --- / debug ---
     }
 }

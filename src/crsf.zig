@@ -24,6 +24,7 @@ const FrameType = enum(u8) {
     device_info  = 0x29,
     param_entry  = 0x2B,
     command      = 0x32,
+    unknown      = 0xFF, // for debugging only
     _,
 };
 
@@ -64,7 +65,7 @@ pub const CrsfFsm = struct {
     rc_channels: ?[16]u11  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Maybe add a wrapper later.
     link_stats: ?LinkStats = null,
 
-    // --- Public API ---
+    // # --- Public API ---
 
     /// Advances the FSM with one byte from the UART stream. Updates 'rc_channels' or 'link_stats' on a complete, valid frame.
     pub fn feed(self: *CrsfFsm, byte: u8) void {
@@ -76,7 +77,9 @@ pub const CrsfFsm = struct {
             },
             .length => {
                 // guards against accessing out-of-bounds buffer memory
-                if (byte > self.buffer.len + 2 or byte < 4) {
+                const MAX_FRAME_SIZE: u8 = self.buffer.len + 2; // biggest handled frame size
+                const MIN_FRAME_SIZE: u8 = 4;   // smallest valid frame size in CRSF
+                if (byte > MAX_FRAME_SIZE or byte < MIN_FRAME_SIZE) {
                     self.reset();
                     return;
                 }
@@ -114,10 +117,7 @@ pub const CrsfFsm = struct {
                             .link_stats => {
                                 self.link_stats = self.decodeLinkStats();
                             },
-                            else => {
-                                // this shouldnt happen normally, but errors occur
-                                self.reset();
-                            }
+                            else => self.reset(), // generates a compile error if there are more than 2 frame types in use
                         }
                         self.reset();
                     } else {
@@ -128,24 +128,26 @@ pub const CrsfFsm = struct {
         }
     }
 
-    /// Returns the latest decoded CRSF frame.
-    /// If there is an `RC Channels` frame it has priority. Otherwise it returns `Link Statistics`.
-    ///
-    /// NOTE: this approach works fine now, but if more frame types are collected some lower priority ones might get stale or never used.
-    pub fn takeFrame(self: *CrsfFsm) FrameResult {
-        // rc_channels takes precedence over telemetry
-        if (self.rc_channels) |channels| {
-            self.rc_channels = null;
-            return .{ .rc_channels = channels };
-        }
-        if (self.link_stats) |stats| {
-            self.link_stats = null;
-            return .{ .link_stats = stats };
-        }
-        return .none;
+    // This new approach of typed "take methods" makes sure the consumer gets the freshest data of EACH type.
+    // The historical approach, paired with a `while(true)` loop until `.none` is returned, updates the rc channels very often
+    // while waiting for a `link_stats` frame, burning cycles in the process.
+
+    // --- `take` Consumer Functions
+
+    /// Returns an array of the latest RC channels, or `null` if no new "RC channels packed" (0x16) frame has been decoded since the last call.
+    /// Calling this function resets the stored value to `null`, so subsequent calls return `null` until a new such frame is decoded.
+    pub fn takeRcChannels(self: *CrsfFsm) ?[16]u11 {
+        defer self.rc_channels = null;
+        return self.rc_channels;
+    }
+    /// Returns a struct with link statistics or `null` if no new "Link Statistics" (0x14) frame has been decoded since the last function call.
+    /// Calling this function resets the stored value to `null`, so subsequent calls return `null` until a new such frame is decoded.
+    pub fn takeLinkStats(self: *CrsfFsm) ?LinkStats {
+        defer self.link_stats = null;
+        return self.link_stats;
     }
 
-    // --- Frame Decoders ---
+    // # --- Frame Decoders ---
 
     /// Parses a 'Link Statistics' payload from 'self.buffer' and returns the decoded struct.
     fn decodeLinkStats(self: *const CrsfFsm) LinkStats {
@@ -166,7 +168,7 @@ pub const CrsfFsm = struct {
     fn decodeRcChannels(self: *const CrsfFsm) [16]u11 {
 
         var channels: [16]u11 = undefined;
-        const payload = self.buffer[0..22]; // for readability
+        const payload = self.buffer[0 .. self.length - 2]; // for readability
 
         inline for(0..16) |i| {
             const bit_pos  = i * 11;
@@ -182,7 +184,7 @@ pub const CrsfFsm = struct {
 
             // comptime here evaluates the if-condition during comptime,
             // allowing for the inline for loop to be fully unrolled.
-            const word: u32 = if (comptime bit_shift + 11 > 16) blk: { // block syntax FTW
+            const word: u32 = if (bit_shift + 11 > 16) blk: { // block syntax FTW
                 const b2: u32 = payload[byte_pos + 2];
                 break :blk b0 | (b1 << 8) | (b2 << 16); // here we have a total of 24bits
             } else blk: {
@@ -192,7 +194,6 @@ pub const CrsfFsm = struct {
             channels[i] = @truncate((word >> bit_shift) & 0x7FF);
         }
         return channels;
-        //self.channels = channels;
     }
     // --- Internal Utilities ---
 
@@ -232,6 +233,6 @@ pub const CrsfFsm = struct {
         self.index = 0;
         // the following are not strictly needed, but help a lot when debugging
         self.length = 0;
-        self.frame_type = undefined;
+        self.frame_type = .unknown;
     }
 };

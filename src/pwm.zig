@@ -3,6 +3,7 @@ const microzig = @import("microzig");
 
 const rpi = microzig.hal;
 const Channel = rpi.pwm.Channel;
+const t = microzig.chip.peripherals.PWM;
 
 /// Clock divisor and wrap settings that produce 1μs ticks and a 50Hz (20ms) wrap period.
 pub const clk = struct {
@@ -23,7 +24,7 @@ pub const SliceIndex = u3; // hardcoded for better ZLS
 
 // --- PWM Register Map ---
 
-const PWM_BASE:     u32 = 0x4005_0000;
+const PWM_BASE:     u32 = @intFromPtr(microzig.chip.peripherals.PWM); // allows for easy switch to RP2350
 const SLICE_STRIDE: u32 = 0x14;  // each slice block is 20 bytes
 const CC_OFFSET:    u32 = 0x0C;   // compare/capture register within a slice
 const INTR_OFFSET:  u32 = 0xA4;   // raw interrupt status  (write 1 to clear)
@@ -42,7 +43,7 @@ const SliceBuffer =  struct{
 
 /// PWM values are written to this buffer.
 /// On interrupt they get later written into the PWM registers
-var buffer: [NUM_SLICES]SliceBuffer = [_]SliceBuffer{.{}} ** NUM_SLICES;
+var buffer: [NUM_SLICES]SliceBuffer = @splat(SliceBuffer{});
 
 
 // --- Interrupt Handler API ---
@@ -55,6 +56,7 @@ pub fn registerSlice(slice_num: SliceIndex) void {
 /// Schedule a PWM level by storing it in the PWM buffer
 pub fn setLevel(ch: Channel, slice: SliceIndex, level: u16) void {
     switch (ch) {
+        // TODO: save both levels in an atomic u32
         .a => @atomicStore(u16, &buffer[slice].level_a, level, .monotonic),
         .b => @atomicStore(u16, &buffer[slice].level_b, level, .monotonic),
     }
@@ -69,12 +71,6 @@ pub fn enableSliceIrq(slice_num: SliceIndex) void {
 
 /// Unmasks PWM_IRQ_WRAP in the CPU NVIC. Call once, after all slices are configured and enabled.
 pub fn enableCpuIrq() void {
-    // --- old version ---
-    // NVIC ISER0: writing a 1 to bit N enables IRQ N
-    // PWM_IRQ_WRAP = IRQ 4 (ref: RP2040 datasheet Table 2.4)
-    // const NVIC_ISER0 = @as(*volatile u32, @ptrFromInt(0xE000_E100));
-    // NVIC_ISER0.* = 1 << 4;
-    // --- old version ---
     microzig.cpu.interrupt.enable(.PWM_IRQ_WRAP);
 }
 
@@ -98,13 +94,12 @@ pub fn handler() callconv(.c) void {
     while(fired != 0) {
         const index: SliceIndex = @truncate(@ctz(fired));
         fired &= fired - 1;
-
         const b = &buffer[index];
 
-        if (!b.active) continue;
         //debug
         fire_counter += 1;
 
+        // TODO: load a u32 atomically and unpack the two u16 values.
         // atomicLoad might not be necessary here, but it's safer to use.
         const level_a = @atomicLoad(u16, &b.level_a, .monotonic);
         const level_b = @atomicLoad(u16, &b.level_b, .monotonic);
@@ -113,7 +108,7 @@ pub fn handler() callconv(.c) void {
         // one 32bit write sets both channels atomically.
         const cc_address = PWM_BASE + @as(u32, index) * SLICE_STRIDE + CC_OFFSET;
         const cc = @as(*volatile u32, @ptrFromInt(cc_address));
-        cc.* = @as(u32, level_b) << 16 | level_a;
+        cc.* = (@as(u32, level_b) << 16) | level_a;
     }
 }
 
