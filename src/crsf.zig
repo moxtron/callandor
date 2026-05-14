@@ -65,7 +65,7 @@ pub const CrsfFsm = struct {
     rc_channels: ?[16]u11  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Maybe add a wrapper later.
     link_stats: ?LinkStats = null,
 
-    // --- Public API ---
+    // # --- Public API ---
 
     /// Advances the FSM with one byte from the UART stream. Updates 'rc_channels' or 'link_stats' on a complete, valid frame.
     pub fn feed(self: *CrsfFsm, byte: u8) void {
@@ -128,40 +128,26 @@ pub const CrsfFsm = struct {
         }
     }
 
-    // --- historical ---
-    /// Returns the latest decoded CRSF frame.
-    /// If there is an `RC Channels` frame it has priority. Otherwise it returns `Link Statistics`.
-    ///
-    /// NOTE: this approach works fine now, but if more frame types are collected some lower priority ones might get stale or never used.
-    // pub fn takeFrame(self: *CrsfFsm) FrameResult {
-    //     // rc_channels takes precedence over telemetry
-    //     if (self.rc_channels) |channels| {
-    //         self.rc_channels = null;
-    //         return .{ .rc_channels = channels };
-    //     }
-    //     if (self.link_stats) |stats| {
-    //         self.link_stats = null;
-    //         return .{ .link_stats = stats };
-    //     }
-    //     return .none;
-    // }
-    // --- / historical ---
-
-    // This new approach of typed `take methods` makes sure the consumer gets the freshest data of EACH type.
-    // The historical approach, paired with a `while(true)` loop until `.none` is returned updates the rc channels very often,
+    // This new approach of typed "take methods" makes sure the consumer gets the freshest data of EACH type.
+    // The historical approach, paired with a `while(true)` loop until `.none` is returned, updates the rc channels very often
     // while waiting for a `link_stats` frame, burning cycles in the process.
 
-    /// Returns the latest `RC channels` optional.
+    // --- `take` Consumer Functions
+
+    /// Returns an array of the latest RC channels, or `null` if no new "RC channels packed" (0x16) frame has been decoded since the last call.
+    /// Calling this function resets the stored value to `null`, so subsequent calls return `null` until a new such frame is decoded.
     pub fn takeRcChannels(self: *CrsfFsm) ?[16]u11 {
         defer self.rc_channels = null;
         return self.rc_channels;
     }
+    /// Returns a struct with link statistics or `null` if no new "Link Statistics" (0x14) frame has been decoded since the last function call.
+    /// Calling this function resets the stored value to `null`, so subsequent calls return `null` until a new such frame is decoded.
     pub fn takeLinkStats(self: *CrsfFsm) ?LinkStats {
         defer self.link_stats = null;
         return self.link_stats;
     }
 
-    // --- Frame Decoders ---
+    // # --- Frame Decoders ---
 
     /// Parses a 'Link Statistics' payload from 'self.buffer' and returns the decoded struct.
     fn decodeLinkStats(self: *const CrsfFsm) LinkStats {
