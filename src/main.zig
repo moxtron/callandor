@@ -151,22 +151,19 @@ pub fn main() void {
             fsm.feed(byte);
         }
 
-        // this while loop only finishes when no more frames are available
-        while (true) {
-        // consume one decoded frame per loop
-            switch (fsm.takeFrame()) {
-                .none => break,
+        // the new approach is to only poll each type of CRSF frame once per main loop iteration.
+        if (fsm.takeRcChannels()) |ch| {
+            rc_frames += 1; // debug
+            aileron_left.setPulse   ((level.min_us - 200) + @as(u16, ch[0]));
+            aileron_right.setPulse  ((level.min_us - 200) + @as(u16, ch[0]));
+            elevator.setPulse       ((level.min_us - 200) + @as(u16, ch[1]));
+            rudder.setPulse         ((level.min_us - 200) + @as(u16, ch[3]));
+            motor.setThrottle       ((level.min_us - 200) + @as(u16, ch[2]));
 
-                .rc_channels => |ch| {
-                    rc_frames += 1;
-                    aileron_left.setPulse((level.min_us - 200) + @as(u16, ch[0]));
-                },
-                .link_stats => |ls| {
-                    _ = ls;
-                    ls_frames += 1;
-                },
-
-            }
+        }
+        if (fsm.takeLinkStats()) |ls| {
+            ls_frames += 1;
+            _ = ls;
         }
 
         // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
