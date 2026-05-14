@@ -136,6 +136,7 @@ pub fn main() void {
     var rc_frames: usize = 0;
     var ls_frames: usize = 0;
     var before = time.get_time_since_boot();
+
     // # --- MAIN LOOP ---
     while (true) {
         // drain all available bytes into the FSM
@@ -151,6 +152,7 @@ pub fn main() void {
             fsm.feed(byte);
         }
 
+        // --- CRSF consumers ---
         // the new approach is to only poll each type of CRSF frame once per main loop iteration.
         if (fsm.takeRcChannels()) |ch| {
             rc_frames += 1; // debug
@@ -165,7 +167,7 @@ pub fn main() void {
             ls_frames += 1;
             _ = ls;
         }
-
+        // --- debug ---
         // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
         const now = time.get_time_since_boot();
         if (now.diff(before).to_us() > 1_000_000) {
@@ -175,5 +177,6 @@ pub fn main() void {
             uart_errors = 0;
             before = time.get_time_since_boot();
         }
+        // --- / debug ---
     }
 }
