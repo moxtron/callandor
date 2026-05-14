@@ -26,6 +26,17 @@ pub fn build(b: *std.Build) void {
     firmware.add_app_import("build_options", options.createModule(), .{});
 
     // --- create binaries ---
+
+    // --- compile C code & make headers visible ---
+    firmware.artifact.addCSourceFiles(.{
+        .root = b.path(""),
+        .files = &.{"src/mpu6050.c"},
+        .flags = &.{ "-std=c11", "-Wall" },
+    });
+    // lets Zig find mpu6050.h via @cInclude("mpu6050.h")
+    firmware.artifact.addIncludePath(b.path("src"));
+
+    // --- generate binaries ---
     mb.install_firmware(firmware, .{}); // uf2
     mb.install_firmware(firmware, .{ .format = .elf });
 }

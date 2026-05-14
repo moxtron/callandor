@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+
+// Zig binding, replaces pico/stdlib.h sleep_ms
+void sleep_ms(uint32_t ms);
+
 // holds all 6 parsed sensor values after each read
 // int16_t because sensor values are signed (-32768 to +32767)
 typedef struct {

@@ -1,5 +1,4 @@
 #include "mpu6050.h"
-#include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "hardware/gpio.h"
 
@@ -22,7 +21,7 @@
 #define FS_SEL_ADDRESS      0x1B  // gyroscope full scale range
 #define AFS_SEL_ADDRESS     0x1C  // accelerometer full scale range
 #define SENSOR_DATA_ADDRESS 0x3B  // first register of 14 byte sensor data block
-                                  // auto increments through 0x3b to 0x48  
+                                  // auto increments through 0x3b to 0x48
 
 // MPU6050 register values
 // PWR_MGMT_1: 0x00 = wake up chip, use internal clock
@@ -133,7 +132,7 @@ bool mpu6050_read(MpuData * data){
     // bytes 8-9:   gyro X
     // bytes 10-11: gyro Y
     // bytes 12-13: gyro Z
-    // false = send stop condition after read 
+    // false = send stop condition after read
     result = i2c_read_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, read_buffer, 14, false);
     if(result != 14){
         return false;
@@ -141,13 +140,12 @@ bool mpu6050_read(MpuData * data){
     // combine high and low bytes into signed 16-bit integers
     // cast to int16_t to preserve sign (values range -32768 to +32767)
     data->accel_x = (int16_t) (read_buffer[0] << 8  |  read_buffer[1]);
-    data->accel_y = (int16_t) (read_buffer[2] << 8  |  read_buffer[3]);  
-    data->accel_z = (int16_t) (read_buffer[4] << 8  |  read_buffer[5]);  
-    data->gyro_x  = (int16_t) (read_buffer[8] << 8  |  read_buffer[9]);  
-    data->gyro_y  = (int16_t) (read_buffer[10] << 8 | read_buffer[11]);  
-    data->gyro_z  = (int16_t) (read_buffer[12] << 8 | read_buffer[13]);  
+    data->accel_y = (int16_t) (read_buffer[2] << 8  |  read_buffer[3]);
+    data->accel_z = (int16_t) (read_buffer[4] << 8  |  read_buffer[5]);
+    data->gyro_x  = (int16_t) (read_buffer[8] << 8  |  read_buffer[9]);
+    data->gyro_y  = (int16_t) (read_buffer[10] << 8 | read_buffer[11]);
+    data->gyro_z  = (int16_t) (read_buffer[12] << 8 | read_buffer[13]);
 
     return true;
 
 }
-

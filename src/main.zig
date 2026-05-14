@@ -4,6 +4,9 @@ const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
+const mpu = @cImport({
+    @cInclude("mpu6050.h");
+});
 
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
