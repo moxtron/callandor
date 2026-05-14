@@ -1,6 +1,6 @@
 #include "mpu6050.h"
-#include "hardware/i2c.h"
-#include "hardware/gpio.h"
+// #include "hardware/i2c.h"
+// #include "hardware/gpio.h"
 
 
 // I2C bus configuration
@@ -46,28 +46,42 @@
 // scale factor = 4/32768 = 0.000122 g per raw unit
 #define AFS_SEL_VALUE       (1 << 3)  // = 0x08
 
+// --- historic ---
 // returns true if write succeeded, false if failed
 // static because it's just an internal helper function
+// static bool i2c_write_config(const uint8_t *config, int length) {
+//     int result = i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, config, length, false);
+//     return result == length;
+// }
+// --- / historic ---
+
 static bool i2c_write_config(const uint8_t *config, int length) {
-    int result = i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, config, length, false);
-    return result == length;
+    return mpu_i2c_write(MPU6050_ADDRESS, config, length) == length;
 }
 
-bool mpu6050_init() {
-    // initialize I2C1 controller at 400kHz
-    i2c_init(I2C_INSTANC_RD, BAUDRATE);
 
-    // connect GP14 and GP15 to I2C1 hardware controller
-    // internally disconnects pins from GPIO and routes them to I2C peripheral
-    gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);
+bool mpu6050_init() {
+    // --- historical ---
+    // // initialize I2C1 controller at 400kHz
+    // i2c_init(I2C_INSTANC_RD, BAUDRATE);
+
+    // // connect GP14 and GP15 to I2C1 hardware controller
+    // // internally disconnects pins from GPIO and routes them to I2C peripheral
+    // gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);
+    // gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);
+    // --- / historical ---
 
     // read register 0x75 — always returns 0x68 if chip is working
     uint8_t who_am_i_reg = 0x75;
     uint8_t who_am_i_val = 0;
-    i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &who_am_i_reg, 1, true);
-    i2c_read_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &who_am_i_val, 1, false);
+    // --- historical ---
+    // i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &who_am_i_reg, 1, true);
+    // i2c_read_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &who_am_i_val, 1, false);
+    // --- / historical ---
 
+    // Single-byte write then single-byte read — repeated start
+    if (mpu_i2c_write_then_read(MPU6050_ADDRESS, &who_am_i_reg, 1, &who_am_i_val, 1) != 1)
+        return false;
     if (who_am_i_val != 0x68) {
     // chip not found — wrong wiring, wrong address, broken chip
         return false;
@@ -109,34 +123,46 @@ bool mpu6050_init() {
 }
 bool mpu6050_read(MpuData * data){
     // error checking
-    int result = 0;
+    // --- historical ---
+    // int result = 0;
+    // --- / historical ---
     // buffer to hold all 14 bytes of raw sensor data
     static uint8_t read_buffer[14];
     // register address to start reading from
     uint8_t reg = SENSOR_DATA_ADDRESS;
+
+    // ---  historical ---
     // tell MPU6050 which register to start reading from (0x3B)
     // true = nostop, keeps I2C bus open (no stop condition sent)
     // this is required for a repeated start read sequence:
     // without nostop the chip would release the bus and lose the
     // register pointer before it can start reading
-    result = i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &reg, 1, true);
-    if(result != 1){
+    // result = i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &reg, 1, true);
+    // if(result != 1){
+    //     return false;
+    // }
+    // // read 14 bytes starting from register 0x3B
+    // // MPU6050 auto increments through registers 0x3B to 0x48:
+    // // bytes 0-1:   accel X  (high byte first, then low byte)
+    // // bytes 2-3:   accel Y
+    // // bytes 4-5:   accel Z
+    // // bytes 6-7:   temperature (not used for flight control)
+    // // bytes 8-9:   gyro X
+    // // bytes 10-11: gyro Y
+    // // bytes 12-13: gyro Z
+    // // false = send stop condition after read
+    // result = i2c_read_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, read_buffer, 14, false);
+    // if(result != 14){
+    //     return false;
+    // }
+    // Single-byte write then single-byte read — repeated start
+    // --- / historical ---
+
+    // new
+    if (mpu_i2c_write_then_read(MPU6050_ADDRESS, &reg, 1, read_buffer, 14) != 14)
         return false;
-    }
-    // read 14 bytes starting from register 0x3B
-    // MPU6050 auto increments through registers 0x3B to 0x48:
-    // bytes 0-1:   accel X  (high byte first, then low byte)
-    // bytes 2-3:   accel Y
-    // bytes 4-5:   accel Z
-    // bytes 6-7:   temperature (not used for flight control)
-    // bytes 8-9:   gyro X
-    // bytes 10-11: gyro Y
-    // bytes 12-13: gyro Z
-    // false = send stop condition after read
-    result = i2c_read_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, read_buffer, 14, false);
-    if(result != 14){
-        return false;
-    }
+
+
     // combine high and low bytes into signed 16-bit integers
     // cast to int16_t to preserve sign (values range -32768 to +32767)
     data->accel_x = (int16_t) (read_buffer[0] << 8  |  read_buffer[1]);

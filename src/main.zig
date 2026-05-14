@@ -4,9 +4,12 @@ const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
-const mpu = @cImport({
-    @cInclude("mpu6050.h");
-});
+const mpu = @import("mpu6050.zig");
+comptime { _ = @import("bindings.zig"); }
+// const mpu = @cImport({
+//     @cInclude("mpu6050.h");
+// });
+
 
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
@@ -108,14 +111,13 @@ fn setup_uart_crsf() uart.UART {
     return uart1;
 }
 /// Configures the I2C1 interface for the MPU6050 and returns the I2C instance
-fn setup_i2c_imu() i2c.I2C {
+fn setup_i2c_imu() void {
     const instance = i2c.instance.I2C1;
     instance.apply(.{
         .clock_config = rpi.clock_config,
         .baud_rate = 400_000,
         .repeated_start = true,
     });
-    return instance;
 }
 
 pub fn main() void {
@@ -126,10 +128,14 @@ pub fn main() void {
     setup_uart_logging(); // logging
     const crsf_uart = setup_uart_crsf();
     var fsm = crsf.CrsfFsm{};
-    // i2c instantiation
-    const imu_i2c = setup_i2c_imu();
-
-
+    // setup I2C
+    setup_i2c_imu();
+    // initialize IMU
+    if (!mpu.mpu6050_init()) {
+        std.log.err("MPU6050 initialization failed...", .{});
+    }
+    // container for IMU data
+    var imu_data: mpu.MpuData = undefined;
 
     while (true) {
         // drain all available bytes into the FSM
@@ -162,6 +168,13 @@ pub fn main() void {
                 });
             },
 
+        }
+        if (mpu.mpu6050_read(&imu_data)) {
+            std.log.info(
+                "ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}", .{
+                    imu_data.accel_x, imu_data.accel_y, imu_data.accel_z,
+                    imu_data.gyro_x,  imu_data.gyro_y,  imu_data.gyro_z,
+                    });
         }
     }
 }

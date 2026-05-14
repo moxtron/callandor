@@ -33,6 +33,7 @@ pub fn build(b: *std.Build) void {
         .files = &.{"src/mpu6050.c"},
         .flags = &.{ "-std=c11", "-Wall" },
     });
+
     // lets Zig find mpu6050.h via @cInclude("mpu6050.h")
     firmware.artifact.addIncludePath(b.path("src"));
 
