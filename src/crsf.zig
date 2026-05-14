@@ -128,21 +128,37 @@ pub const CrsfFsm = struct {
         }
     }
 
+    // --- historical ---
     /// Returns the latest decoded CRSF frame.
     /// If there is an `RC Channels` frame it has priority. Otherwise it returns `Link Statistics`.
     ///
     /// NOTE: this approach works fine now, but if more frame types are collected some lower priority ones might get stale or never used.
-    pub fn takeFrame(self: *CrsfFsm) FrameResult {
-        // rc_channels takes precedence over telemetry
-        if (self.rc_channels) |channels| {
-            self.rc_channels = null;
-            return .{ .rc_channels = channels };
-        }
-        if (self.link_stats) |stats| {
-            self.link_stats = null;
-            return .{ .link_stats = stats };
-        }
-        return .none;
+    // pub fn takeFrame(self: *CrsfFsm) FrameResult {
+    //     // rc_channels takes precedence over telemetry
+    //     if (self.rc_channels) |channels| {
+    //         self.rc_channels = null;
+    //         return .{ .rc_channels = channels };
+    //     }
+    //     if (self.link_stats) |stats| {
+    //         self.link_stats = null;
+    //         return .{ .link_stats = stats };
+    //     }
+    //     return .none;
+    // }
+    // --- / historical ---
+
+    // This new approach of typed `take methods` makes sure the consumer gets the freshest data of EACH type.
+    // The historical approach, paired with a `while(true)` loop until `.none` is returned updates the rc channels very often,
+    // while waiting for a `link_stats` frame, burning cycles in the process.
+
+    /// Returns the latest `RC channels` optional.
+    pub fn takeRcChannels(self: *CrsfFsm) ?[16]u11 {
+        defer self.rc_channels = null;
+        return self.rc_channels;
+    }
+    pub fn takeLinkStats(self: *CrsfFsm) ?LinkStats {
+        defer self.link_stats = null;
+        return self.link_stats;
     }
 
     // --- Frame Decoders ---
