@@ -119,7 +119,7 @@ bool mpu6050_read(MpuData * data){
     // true = nostop, keeps I2C bus open (no stop condition sent)
     // this is required for a repeated start read sequence:
     // without nostop the chip would release the bus and lose the
-    // register pointer before we can start reading
+    // register pointer before it can start reading
     result = i2c_write_blocking(I2C_INSTANC_RD, MPU6050_ADDRESS, &reg, 1, true);
     if(result != 1){
         return false;
