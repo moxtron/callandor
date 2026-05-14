@@ -15,6 +15,7 @@ const calibrate_mode = build_options.calibrate;
 const rpi = microzig.hal;
 const time = rpi.time;
 const uart = rpi.uart;
+const i2c = rpi.i2c;
 const sleep = time.sleep_ms;
 const log = std.log;
 
@@ -46,6 +47,16 @@ const pin_config = rpi.pins.GlobalConfiguration{
     .GPIO9 = .{
         .name = "crsf_tx",
         .function = .UART1_RX
+    },
+    .GPIO14 = .{
+        .name = "i2c_sda",
+        .function = .I2C1_SDA,
+        .pull = .up,
+    },
+    .GPIO15 = .{
+        .name = "i2c_scl",
+        .function = .I2C1_SCL,
+        .pull = .up,
     },
     .GPIO16 = .{
         .name = "aileron_left",
@@ -96,6 +107,16 @@ fn setup_uart_crsf() uart.UART {
     });
     return uart1;
 }
+/// Configures the I2C1 interface for the MPU6050 and returns the I2C instance
+fn setup_i2c_imu() i2c.I2C {
+    const instance = i2c.instance.I2C1;
+    instance.apply(.{
+        .clock_config = rpi.clock_config,
+        .baud_rate = 400_000,
+        .repeated_start = true,
+    });
+    return instance;
+}
 
 pub fn main() void {
     // setting up the PWM pins
@@ -105,6 +126,8 @@ pub fn main() void {
     setup_uart_logging(); // logging
     const crsf_uart = setup_uart_crsf();
     var fsm = crsf.CrsfFsm{};
+    // i2c instantiation
+    const imu_i2c = setup_i2c_imu();
 
 
 
