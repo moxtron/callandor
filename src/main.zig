@@ -101,10 +101,10 @@ pub fn main() void {
     // initialize ESC
     var motor = esc.Esc.init(pins.esc, .{}, calibrate_mode);
     // initialize servos
-    const aileron_left  = Servo.init(pins.aileron_left,  .{});
-    const aileron_right = Servo.init(pins.aileron_right, .{});
-    const elevator      = Servo.init(pins.elevator,      .{});
-    const rudder        = Servo.init(pins.rudder,        .{});
+    const aileron_left  = Servo.init(pins.aileron_left,  .{ .servo_type = .aileron });
+    const aileron_right = Servo.init(pins.aileron_right, .{ .servo_type = .aileron });
+    const elevator      = Servo.init(pins.elevator,      .{ .servo_type = .elevator });
+    const rudder        = Servo.init(pins.rudder,        .{ .servo_type = .rudder });
 
     // initialize interrupts
     pwmlib.init(pin_config);
@@ -156,11 +156,11 @@ pub fn main() void {
         // the new approach is to only poll each type of CRSF frame once per main loop iteration.
         if (fsm.takeRcChannels()) |ch| {
             rc_frames += 1; // debug
-            aileron_left.setPulse   ((level.min_us - 200) + @as(u16, ch[0]));
-            aileron_right.setPulse  ((level.min_us - 200) + @as(u16, ch[0]));
-            elevator.setPulse       ((level.min_us - 200) + @as(u16, ch[1]));
-            rudder.setPulse         ((level.min_us - 200) + @as(u16, ch[3]));
-            motor.setThrottle       ((level.min_us - 200) + @as(u16, ch[2]));
+            aileron_left.setPulse   ((level.min_us - 200) + ch[0]);
+            aileron_right.setPulse  ((level.min_us - 200) + ch[0]);
+            elevator.setPulse       ((level.min_us - 200) + ch[1]);
+            rudder.setPulse         ((level.min_us - 200) + ch[3]);
+            motor.setThrottle       ((level.min_us - 200) + ch[2]);
 
         }
         if (fsm.takeLinkStats()) |ls| {
