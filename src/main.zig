@@ -4,6 +4,7 @@ const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
+const mixer = @import("mixer.zig");
 
 // --- Compile-time build options ---
 const build_options = @import("build_options");
@@ -118,18 +119,31 @@ pub fn main() void {
     var fsm = crsf.CrsfFsm{};
 
     // group servos for easier testing
-    const front = ServoGroup(2).init(.{
-        aileron_left,
-        aileron_right,
-    });
-    const rear = ServoGroup(2).init(.{
-        elevator,
-        rudder,
-    });
-    const level = ServoConfig{};    // easy access to default servo levels
-    _ = front;
-    _ = rear;
+    // const front = ServoGroup(2).init(.{
+    //     aileron_left,
+    //     aileron_right,
+    // });
+    // const rear = ServoGroup(2).init(.{
+    //     elevator,
+    //     rudder,
+    // });
+    // const level = ServoConfig{};    // easy access to default servo levels
+    // _ = front;
+    // _ = rear;
     // TODO: drive servos & motor from `mixer.zig`
+
+    // filled with safe values until there is real data available
+    var channels = mixer.PilotControls{
+        .ailerons = 992,
+        .elevator = 992,
+        .throttle = 172,
+        .rudder = 992,
+        .aux1  = 172, .aux2  = 172, .aux3  = 172, .aux4  = 172,
+        .aux5  = 172, .aux6  = 172, .aux7  = 172, .aux8  = 172,
+        .aux9  = 172, .aux10 = 172, .aux11 = 172, .aux12 = 172,
+    };
+    var link_stats: crsf.LinkStats = undefined;
+    //var failsafe: bool = false;
 
     // debug counters
     var uart_errors: usize = 0;
@@ -155,22 +169,23 @@ pub fn main() void {
         // --- CRSF consumers ---
         // the new approach is to only poll each type of CRSF frame once per main loop iteration.
         if (fsm.takeRcChannels()) |ch| {
-            rc_frames += 1; // debug
-            aileron_left.setPulse   ((level.min_us - 200) + ch[0]);
-            aileron_right.setPulse  ((level.min_us - 200) + ch[0]);
-            elevator.setPulse       ((level.min_us - 200) + ch[1]);
-            rudder.setPulse         ((level.min_us - 200) + ch[3]);
-            motor.setThrottle       ((level.min_us - 200) + ch[2]);
+            rc_frames += 1;
+            channels = mixer.genPilotControlsFromChannels(ch);
 
         }
         if (fsm.takeLinkStats()) |ls| {
             ls_frames += 1;
-            _ = ls;
+            link_stats = ls;
         }
+
+        // --- Mixer ---
+        mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, false);
+
         // --- debug ---
         // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
         const now = time.get_time_since_boot();
         if (now.diff(before).to_us() > 1_000_000) {
+            std.log.info("CH0: {d}, CH1: {d}, CH2: {d}, CH3: {d}", .{channels.ailerons, channels.elevator, channels.throttle, channels.rudder});
             std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
             rc_frames = 0;
             ls_frames = 0;
