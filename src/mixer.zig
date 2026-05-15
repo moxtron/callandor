@@ -65,5 +65,7 @@ fn scaleToUs(crsf: u16, min_us: u16, max_us: u16) u16 {
     const crsf_min =  172; // minimum for CRSF values
     const crsf_max = 1811; // maximum for CRSF values
     // using saturating subtraction to guard against a glitchy signal (crsf < 172)
-    return (crsf -| crsf_min) * (max_us - min_us) / (crsf_max - crsf_min) + min_us;
+    const numerator: u32 = @as(u32, crsf -| crsf_min) * @as(u32, max_us - min_us);
+    const result: u32 = numerator / (crsf_max - crsf_min) + min_us;
+    return @truncate(result);
 }
