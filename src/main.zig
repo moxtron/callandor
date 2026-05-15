@@ -118,20 +118,6 @@ pub fn main() void {
     const uart_crsf = setup_uart_crsf();
     var fsm = crsf.CrsfFsm{};
 
-    // group servos for easier testing
-    // const front = ServoGroup(2).init(.{
-    //     aileron_left,
-    //     aileron_right,
-    // });
-    // const rear = ServoGroup(2).init(.{
-    //     elevator,
-    //     rudder,
-    // });
-    // const level = ServoConfig{};    // easy access to default servo levels
-    // _ = front;
-    // _ = rear;
-    // TODO: drive servos & motor from `mixer.zig`
-
     // filled with safe values until there is real data available
     var channels = mixer.PilotControls{
         .ailerons = 992,
@@ -143,13 +129,17 @@ pub fn main() void {
         .aux9  = 172, .aux10 = 172, .aux11 = 172, .aux12 = 172,
     };
     var link_stats: crsf.LinkStats = undefined;
-    //var failsafe: bool = false;
+
+    var failsafe: bool = false; // failsafe flag
+    var before = time.get_time_since_boot();
+    var last_rc_frame = before;
+
 
     // debug counters
     var uart_errors: usize = 0;
     var rc_frames: usize = 0;
     var ls_frames: usize = 0;
-    var before = time.get_time_since_boot();
+
 
     // # --- MAIN LOOP ---
     while (true) {
@@ -171,6 +161,7 @@ pub fn main() void {
         if (fsm.takeRcChannels()) |ch| {
             rc_frames += 1;
             channels = mixer.genPilotControlsFromChannels(ch);
+            last_rc_frame = time.get_time_since_boot();
 
         }
         if (fsm.takeLinkStats()) |ls| {
@@ -179,12 +170,15 @@ pub fn main() void {
         }
 
         // --- Mixer ---
-        mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, false);
+        const now = time.get_time_since_boot();
+        failsafe = now.diff(last_rc_frame).to_us() > 500_000; // sets to true if the last rc frame was received more than 0.5s ago
+        mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, failsafe);
 
         // --- debug ---
         // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
-        const now = time.get_time_since_boot();
+
         if (now.diff(before).to_us() > 1_000_000) {
+            if (failsafe) std.log.info("FAILSAFE ACTIVE: {}", .{failsafe});
             std.log.info("CH0: {d}, CH1: {d}, CH2: {d}, CH3: {d}", .{channels.ailerons, channels.elevator, channels.throttle, channels.rudder});
             std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
             rc_frames = 0;
