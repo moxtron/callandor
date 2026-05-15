@@ -2,7 +2,7 @@
 
 Fixed-wing flight computer for the RP2040, written in Zig & C, using the [MicroZig](https://github.com/ZigEmbeddedGroup/microzig) framework.
 
-> **Status:** Milestone M1 complete — CRSF decoded, all 16 RC channels & link statistics printed over UART.
+> **Status:** Milestone M2 in progress — RC pass-through working; mixer and failsafe watchdog implemented and bench-tested.
 
 ---
 
@@ -26,7 +26,7 @@ ELRS Receiver → CRSF Parser → Channel Values → [PID correction from IMU] �
 |---|---|
 | MCU | Raspberry Pi Pico (RP2040) |
 | IMU | MPU6050 — 3-axis gyro + accelerometer (I²C) |
-| RC receiver | RadioMaster RPv3, CRSF protocol over UART |
+| RC receiver | RadioMaster Pocket, CRSF protocol over UART |
 | Outputs | 4 servos (ailerons ×2, elevator, rudder) + 1 ESC using PWM|
 
 ---
@@ -50,11 +50,11 @@ Flash the resulting `.uf2` from `zig-out/firmware/` by holding BOOTSEL on the Pi
 
 ### Build options
 
-| Flag | Default | Description |
-|---|---|---|
-| `-Dcalibrate=true` | `false` | Run ESC throttle-range calibration routine on boot |
+| Flag | Description |
+|---|---|
+| `-Dcalibrate` | Run ESC throttle-range calibration routine on boot |
 
-> **Note:** Always run ESC calibration with propellers removed. After calibration, build without `-Dcalibrate=false` and re-flash to skip the calibration routine on boot.
+> **Note:** Always run ESC calibration with propellers removed. After calibration, re-flash without the `-Dcalibrate=true` flag to return to normal boot behaviour.
 
 ---
 
@@ -72,7 +72,7 @@ Timing uses the RP2040's 64-bit hardware timer at 1 µs resolution.
 
 ### Key modules
 
-**CRSF parser** — state-machine frame parser over UART at 420 000 baud (8N1). Validates CRC-8 (poly `0xD5`) and decodes 16 RC channels packed as 11-bit values from frame type `0x16`. Channel range: 172–1811, center 992.
+**CRSF parser** — state-machine frame parser over UART at 420 000 baud (8N1). Validates CRC-8 (poly `0xD5`) and decodes 16 RC channels packed as 11-bit values from frame type `0x16`. Channel range: 172–1811, center 992. The RC channels are stored as 16-bit for better compatibility with C modules. Due to alignment on the RP2040, `u11` still takes up 16 bits anyway.
 
 **IMU driver** — wakes MPU6050, configures gyro (±500 °/s) and accel (±4 g), reads 14-byte samples at ~1 kHz. Performs boot-time gyro bias calibration.
 
@@ -86,9 +86,9 @@ Typical α: 0.95–0.99.
 
 **Mixer** — translates roll/pitch/yaw/throttle commands to per-servo positions. Ailerons are mirrored; elevator, rudder, and throttle are direct. PID correction is applied before mixing.
 
-**PWM output** — 50Hz signal, 1000–2000 µs pulse width (1500 µs = neutral). RP2040 config: divider = 125, wrap = 19_999 (1 µs resolution).
+**PWM output** — 50 Hz signal, 550–2450 µs pulse width (1500 µs = neutral). RP2040 config: divider = 125, wrap = 19 999 (1 µs resolution).
 
-**Failsafe** — tracks time since last valid CRSF frame. If no valid frame arrives within 250–500 ms, overrides all channels with safe defaults (throttle minimum, surfaces neutral).
+**Failsafe** — tracks time since last valid CRSF frame. If no valid frame arrives within 500 ms, overrides all channels with safe defaults (throttle minimum, surfaces set for light descent in a circle).
 
 ---
 
@@ -97,8 +97,8 @@ Typical α: 0.95–0.99.
 | | Title | Exit condition |
 |---|---|---|
 | ✅ M0 | Foundation | Toolchain flashes; PWM outputs stable; ESC arms |
-| ✅ M1 | RC link | CRSF decoded; 16 channels visible over USB |
-| ⬜ M2 | Manual flight | RC pass-through flyable; failsafe tested in the field |
+| ✅ M1 | RC link | CRSF decoded; 16 channels visible over UART |
+| 🔄 M2 | Manual flight | RC pass-through flyable; failsafe tested in the field |
 | ⬜ M3 | IMU & sensor fusion | Stable pitch/roll angles, no drift |
 | ⬜ M4 | Stabilization | PID active; surfaces resist tilt on bench |
 | ⬜ M5 | Tuning & flight testing | Aircraft flies stably in stabilized mode |
@@ -108,7 +108,7 @@ Typical α: 0.95–0.99.
 ## Safety
 
 - **Propellers off** during all bench development with ESC connected.
-- Test failsafe by physically cutting receiver power - do this before every flight session.
+- Test failsafe by physically cutting receiver power — do this before every flight session.
 - ESC requires a throttle-low arming sequence at boot; the firmware handles this automatically.
 
 ---
