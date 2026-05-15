@@ -32,7 +32,7 @@ pub const Esc = struct {
 
     /// Configures the PWM slice and drives minimum throttle immediately.
     /// Call as early as possible in 'main' so the ESC never sees a floating signal during boot.
-    pub fn init(raw_pwm: pwm.Pwm, config: EscConfig, calibrate_mode: bool) Esc {
+    pub fn init(raw_pwm: pwm.Pwm, comptime config: EscConfig, calibrate_mode: bool) Esc {
         // configure the PWM slice
         const slice = raw_pwm.slice();
         slice.set_clk_div(pwmlib.clk.div, pwmlib.clk.frac);
