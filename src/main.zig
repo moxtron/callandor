@@ -181,7 +181,7 @@ pub fn main() void {
             if (failsafe) std.log.info("FAILSAFE ACTIVE: {}", .{failsafe});
             std.log.info("CH0: {d}, CH1: {d}, CH2: {d}, CH3: {d}", .{channels.ailerons, channels.elevator, channels.throttle, channels.rudder});
             std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
-            std.log.info();
+            std.log.info("", .{});
             rc_frames = 0;
             ls_frames = 0;
             uart_errors = 0;
