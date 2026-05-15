@@ -54,12 +54,12 @@ const pin_config = rpi.pins.GlobalConfiguration{
     .GPIO14 = .{
         .name = "i2c_sda",
         .function = .I2C1_SDA,
-        .pull = .up,
+        //.pull = .up,
     },
     .GPIO15 = .{
         .name = "i2c_scl",
         .function = .I2C1_SCL,
-        .pull = .up,
+        //.pull = .up,
     },
     .GPIO16 = .{
         .name = "aileron_left",
@@ -130,6 +130,7 @@ pub fn main() void {
     var fsm = crsf.CrsfFsm{};
     // setup I2C
     setup_i2c_imu();
+
     // initialize IMU
     if (!mpu.mpu6050_init()) {
         std.log.err("MPU6050 initialization failed...", .{});
