@@ -2,7 +2,7 @@ const servo = @import("servo.zig");
 const esc = @import("esc.zig");
 
 /// Used to make the RC channels more convenient.
-const PilotControls = struct {
+pub const PilotControls = struct {
     ailerons: u16,
     elevator: u16,
     throttle: u16,
