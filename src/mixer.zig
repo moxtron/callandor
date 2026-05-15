@@ -55,8 +55,15 @@ pub fn mix(pc: PilotControls, motor: esc.Esc , servos: anytype, failsafe: bool) 
                 else => unreachable,
             }
         }
-    } else {
-        // TODO: failsafe logic
+    } else { // failsafe
+        motor.setThrottle(1200); // low sustain to prevent stalling
+        inline for (servos) |s| {
+            switch (s.config.servo_type) {
+                .aileron  => s.setPulse(s.config.center_us + 100), // slight roll, so the plane goes in a slight circle
+                .elevator => s.setPulse(s.config.center_us + 100), // slight downwards pitch (elevator up) so it descends
+                .rudder   => s.setPulse(s.config.center_us + 100), // slight yaw in the direction of the roll for circle
+            }
+        }
     }
 }
 // NOTE: the integer divisions are fine for now, but maybe later we should leverage the hardware SIO divider. it does integer division in 8 cycles instead of the 20-40 cycles.
