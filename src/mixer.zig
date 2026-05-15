@@ -62,6 +62,7 @@ pub fn mix(pc: PilotControls, motor: esc.Esc , servos: anytype, failsafe: bool) 
                 .aileron  => s.setPulse(s.config.center_us + 100), // slight roll, so the plane goes in a slight circle
                 .elevator => s.setPulse(s.config.center_us + 100), // slight downwards pitch (elevator up) so it descends
                 .rudder   => s.setPulse(s.config.center_us + 100), // slight yaw in the direction of the roll for circle
+                else => unreachable,
             }
         }
     }
