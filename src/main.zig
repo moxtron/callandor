@@ -4,6 +4,7 @@ const servo = @import("servo.zig");
 const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
+const mixer = @import("mixer.zig");
 
 // --- Compile-time build options ---
 const build_options = @import("build_options");
@@ -101,10 +102,10 @@ pub fn main() void {
     // initialize ESC
     var motor = esc.Esc.init(pins.esc, .{}, calibrate_mode);
     // initialize servos
-    const aileron_left  = Servo.init(pins.aileron_left,  .{});
-    const aileron_right = Servo.init(pins.aileron_right, .{});
-    const elevator      = Servo.init(pins.elevator,      .{});
-    const rudder        = Servo.init(pins.rudder,        .{});
+    const aileron_left  = Servo.init(pins.aileron_left,  .{ .servo_type = .aileron });
+    const aileron_right = Servo.init(pins.aileron_right, .{ .servo_type = .aileron });
+    const elevator      = Servo.init(pins.elevator,      .{ .servo_type = .elevator });
+    const rudder        = Servo.init(pins.rudder,        .{ .servo_type = .rudder });
 
     // initialize interrupts
     pwmlib.init(pin_config);
@@ -117,25 +118,28 @@ pub fn main() void {
     const uart_crsf = setup_uart_crsf();
     var fsm = crsf.CrsfFsm{};
 
-    // group servos for easier testing
-    const front = ServoGroup(2).init(.{
-        aileron_left,
-        aileron_right,
-    });
-    const rear = ServoGroup(2).init(.{
-        elevator,
-        rudder,
-    });
-    const level = ServoConfig{};    // easy access to default servo levels
-    _ = front;
-    _ = rear;
-    // TODO: drive servos & motor from `mixer.zig`
+    // filled with safe values until there is real data available
+    var channels = mixer.PilotControls{
+        .ailerons = 992,
+        .elevator = 992,
+        .throttle = 172,
+        .rudder = 992,
+        .aux1  = 172, .aux2  = 172, .aux3  = 172, .aux4  = 172,
+        .aux5  = 172, .aux6  = 172, .aux7  = 172, .aux8  = 172,
+        .aux9  = 172, .aux10 = 172, .aux11 = 172, .aux12 = 172,
+    };
+    var link_stats: crsf.LinkStats = undefined;
+
+    var failsafe: bool = false; // failsafe flag
+    var before = time.get_time_since_boot();
+    var last_rc_frame = before;
+
 
     // debug counters
     var uart_errors: usize = 0;
     var rc_frames: usize = 0;
     var ls_frames: usize = 0;
-    var before = time.get_time_since_boot();
+
 
     // # --- MAIN LOOP ---
     while (true) {
@@ -155,23 +159,29 @@ pub fn main() void {
         // --- CRSF consumers ---
         // the new approach is to only poll each type of CRSF frame once per main loop iteration.
         if (fsm.takeRcChannels()) |ch| {
-            rc_frames += 1; // debug
-            aileron_left.setPulse   ((level.min_us - 200) + @as(u16, ch[0]));
-            aileron_right.setPulse  ((level.min_us - 200) + @as(u16, ch[0]));
-            elevator.setPulse       ((level.min_us - 200) + @as(u16, ch[1]));
-            rudder.setPulse         ((level.min_us - 200) + @as(u16, ch[3]));
-            motor.setThrottle       ((level.min_us - 200) + @as(u16, ch[2]));
+            rc_frames += 1;
+            channels = mixer.genPilotControlsFromChannels(ch);
+            last_rc_frame = time.get_time_since_boot();
 
         }
         if (fsm.takeLinkStats()) |ls| {
             ls_frames += 1;
-            _ = ls;
+            link_stats = ls;
         }
+
+        // --- Mixer ---
+        const now = time.get_time_since_boot();
+        failsafe = now.diff(last_rc_frame).to_us() > 500_000; // sets to true if the last rc frame was received more than 0.5s ago
+        mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, failsafe);
+
         // --- debug ---
         // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
-        const now = time.get_time_since_boot();
+
         if (now.diff(before).to_us() > 1_000_000) {
+            if (failsafe) std.log.info("FAILSAFE ACTIVE: {}", .{failsafe});
+            std.log.info("CH0: {d}, CH1: {d}, CH2: {d}, CH3: {d}", .{channels.ailerons, channels.elevator, channels.throttle, channels.rudder});
             std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
+            std.log.info("", .{});
             rc_frames = 0;
             ls_frames = 0;
             uart_errors = 0;

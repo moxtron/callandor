@@ -8,6 +8,12 @@ const pwm = rpi.pwm;
 const Pwm = pwm.Pwm;
 const Channel = pwm.Channel;
 
+pub const ServoType = enum {
+    aileron,
+    elevator,
+    rudder,
+    unknown,
+};
 
 /// Settings for servo motor. Defines its range, the center point and if it is reversed.
 pub const ServoConfig = struct {
@@ -15,6 +21,7 @@ pub const ServoConfig = struct {
     center_us: u16 = 1500,
     max_us:    u16 = 2450,
     reversed: bool = false, // mainly meant for the second aileron
+    servo_type: ServoType = .unknown,
 };
 
 
@@ -56,7 +63,10 @@ pub const Servo = struct {
     // --- Lifecycle ---
     //
     /// Configures the PWM slice for this servo and centers it to 'config.center_us'.
-    pub fn init(pwm_struct: pwm.Pwm, config: ServoConfig) Servo {
+    pub fn init(pwm_struct: pwm.Pwm, comptime config: ServoConfig) Servo {
+        // make sure the servo has a servo type assigned
+        if (config.servo_type == .unknown) @compileError("Servo has no ServoType assigned!");
+
         // setup the pwm slice
         const slice = pwm_struct.slice();
         slice.set_clk_div(pwmlib.clk.div, pwmlib.clk.frac);
@@ -64,7 +74,6 @@ pub const Servo = struct {
         slice.enable();
         // direct write for initial position
         pwm_struct.set_level(config.center_us);
-
         // prime the ISR buffer so it never applies a stale zero
         const slice_num: pwmlib.SliceIndex = @truncate(pwm_struct.slice_number);
         pwmlib.setLevel(pwm_struct.channel, slice_num, config.center_us);

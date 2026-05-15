@@ -45,7 +45,7 @@ pub const LinkStats = struct {
 /// Result of a decoded CRSF frame. Returns '.none' when no complete frame is available.
 pub const FrameResult = union(enum) {
     none,
-    rc_channels: [16]u11,
+    rc_channels: [16]u16,
     link_stats: LinkStats,
 };
 
@@ -62,7 +62,7 @@ pub const CrsfFsm = struct {
 
     // parsed, clean data for consumers
     // consume-on-read to prevent blocking or stale data
-    rc_channels: ?[16]u11  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Maybe add a wrapper later.
+    rc_channels: ?[16]u16  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Maybe add a wrapper later.
     link_stats: ?LinkStats = null,
 
     // # --- Public API ---
@@ -136,7 +136,7 @@ pub const CrsfFsm = struct {
 
     /// Returns an array of the latest RC channels, or `null` if no new "RC channels packed" (0x16) frame has been decoded since the last call.
     /// Calling this function resets the stored value to `null`, so subsequent calls return `null` until a new such frame is decoded.
-    pub fn takeRcChannels(self: *CrsfFsm) ?[16]u11 {
+    pub fn takeRcChannels(self: *CrsfFsm) ?[16]u16 {
         defer self.rc_channels = null;
         return self.rc_channels;
     }
@@ -165,9 +165,9 @@ pub const CrsfFsm = struct {
         };
     }
     /// Unpacks 16 11bit RC channel values from the packed 'RC Channels' payload in 'self.buffer'.
-    fn decodeRcChannels(self: *const CrsfFsm) [16]u11 {
+    fn decodeRcChannels(self: *const CrsfFsm) [16]u16 {
 
-        var channels: [16]u11 = undefined;
+        var channels: [16]u16 = undefined;
         const payload = self.buffer[0 .. self.length - 2]; // for readability
 
         inline for(0..16) |i| {
