@@ -45,7 +45,7 @@ pub const LinkStats = struct {
 /// Result of a decoded CRSF frame. Returns '.none' when no complete frame is available.
 pub const FrameResult = union(enum) {
     none,
-    rc_channels: [16]u11,
+    rc_channels: [16]u16,
     link_stats: LinkStats,
 };
 
@@ -136,7 +136,7 @@ pub const CrsfFsm = struct {
 
     /// Returns an array of the latest RC channels, or `null` if no new "RC channels packed" (0x16) frame has been decoded since the last call.
     /// Calling this function resets the stored value to `null`, so subsequent calls return `null` until a new such frame is decoded.
-    pub fn takeRcChannels(self: *CrsfFsm) ?[16]u11 {
+    pub fn takeRcChannels(self: *CrsfFsm) ?[16]u16 {
         defer self.rc_channels = null;
         return self.rc_channels;
     }
