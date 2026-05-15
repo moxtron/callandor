@@ -1,7 +1,7 @@
 const servo = @import("servo.zig");
 const esc = @import("esc.zig");
 
-/// Used to make the RC channels more convenient.
+/// Used to make the RC channel access more convenient.
 pub const PilotControls = struct {
     ailerons: u16,
     elevator: u16,
@@ -21,6 +21,7 @@ pub const PilotControls = struct {
     aux12:    u16,
 };
 
+/// Helper function to generate a `PilotControls` struct from the raw CRSF RC channels
 pub fn genPilotControlsFromChannels(channels: [16]u16) PilotControls {
     return .{
         .ailerons = channels[0],
@@ -42,6 +43,7 @@ pub fn genPilotControlsFromChannels(channels: [16]u16) PilotControls {
     };
 }
 
+/// Applies RC channel values from `PilotControls` to the ESC & servos.
 pub fn mix(pc: PilotControls, motor: esc.Esc , comptime servos: []servo.Servo, failsafe: bool) void {
     if(!failsafe) {
         motor.setThrottle(scaleToUs(pc.throttle, motor.config.min_us, motor.config.max_us));
@@ -58,7 +60,7 @@ pub fn mix(pc: PilotControls, motor: esc.Esc , comptime servos: []servo.Servo, f
     }
 }
 // NOTE: the integer divisions are fine for now, but maybe later we should leverage the hardware SIO divider. it does integer division in 8 cycles instead of the 20-40 cycles.
-
+/// Scales CRSF values to PWM values.
 fn scaleToUs(crsf: u16, comptime min_us: u16, comptime max_us: u16) u16 {
     const crsf_min =  172; // minimum for CRSF values
     const crsf_max = 1811; // maximum for CRSF values
