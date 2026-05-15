@@ -7,7 +7,6 @@ const pwm = rpi.pwm;
 
 const Pwm = pwm.Pwm;
 const Channel = pwm.Channel;
-const @"pwmlib.SliceIndex" = pwmlib.SliceIndex;
 
 /// Settings for servo motor. Defines its range, the center point and if it is reversed.
 pub const ServoConfig = struct {
