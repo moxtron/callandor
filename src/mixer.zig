@@ -56,7 +56,7 @@ pub fn mix(pc: PilotControls, motor: esc.Esc , servos: anytype, failsafe: bool) 
             }
         }
     } else {
-
+        // TODO: failsafe logic
     }
 }
 // NOTE: the integer divisions are fine for now, but maybe later we should leverage the hardware SIO divider. it does integer division in 8 cycles instead of the 20-40 cycles.
