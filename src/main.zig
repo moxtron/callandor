@@ -144,15 +144,14 @@ pub fn main() void {
     // # --- MAIN LOOP ---
     while (true) {
         // drain all available bytes into the FSM
-        while (true) {
-            const received = uart_crsf.read_word() catch blk: {
+        drain: while (true) {
+            const byte = uart_crsf.read_word() catch {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
                 uart_crsf.clear_errors();
                 uart_errors += 1;
-                break :blk null;
-            };
-            const byte = received orelse break;
+                continue :drain;
+            } orelse break :drain; // FIFO empty -> done draining
             fsm.feed(byte);
         }
 
