@@ -117,7 +117,7 @@ pub const CrsfFsm = struct {
                             .link_stats => {
                                 self.link_stats = self.decodeLinkStats();
                             },
-                            else => self.reset(), // generates a compile error if there are more than 2 frame types in use
+                            else => self.reset(),
                         }
                         self.reset();
                     } else {
