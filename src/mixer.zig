@@ -87,6 +87,7 @@ pub fn mix(channels: [16]u16, motor: esc.Esc , servos: anytype, failsafe: bool) 
         }
     }
 }
+/// Helper function to get channel value by enum
 inline fn ch (channels: [16]u16, c: RcChannelIndex) u16 {
     return channels[@intFromEnum(c)];
 }
