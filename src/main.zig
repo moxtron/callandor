@@ -106,7 +106,7 @@ pub fn main() void {
     if (calibrate_mode) motor.calibrate() else motor.arm();
 
     // debug mode setup
-    debug.setup();
+    if (comptime debug_mode) debug.setup();
     var debug_state = if (comptime debug_mode) debug.State{};
 
 
