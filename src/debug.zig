@@ -12,8 +12,10 @@ const uart = rpi.uart;
 
 const Absolute = microzig.drivers.time.Absolute;
 
+// all functions are defined as `inline` so there is no function overhead when `enabled` is false.
+
 /// Configures UART0 at 115200 baud and registers it as the 'std.log' backend
-pub fn setup() void {
+pub inline fn setup() void {
     if (comptime !enabled) return;
     const uart0 = uart.instance.UART0;
     uart0.apply(.{
@@ -35,24 +37,24 @@ pub const State = struct {
     uart_error: usize = 0,
 
 
-    pub fn countControls(self: *State, controls: [16]u16) void {
+    pub inline fn countControls(self: *State, controls: [16]u16) void {
         if (comptime !enabled) return;
         self.last_controls = time.get_time_since_boot();
         self.controls = controls;
         self.rc_frames += 1;
     }
-    pub fn countLinkStats(self: *State, link_stats: crsf.LinkStats) void {
+    pub inline fn countLinkStats(self: *State, link_stats: crsf.LinkStats) void {
         if (comptime !enabled) return;
         self.last_link_stats = time.get_time_since_boot();
         self.link_stats = link_stats;
         self.ls_frames += 1;
     }
-    pub fn countUartError(self: *State) void {
+    pub inline fn countUartError(self: *State) void {
         if (comptime !enabled) return;
         self.uart_error += 1;
     }
 
-    pub fn ticker(self: *State, now: Absolute, failsafe: bool) void {
+    pub inline fn ticker(self: *State, now: Absolute, failsafe: bool) void {
         if (comptime !enabled) return;
             // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
         if (now.diff(self.before).to_us() > 1_000_000) {
