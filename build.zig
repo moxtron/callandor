@@ -10,9 +10,14 @@ pub fn build(b: *std.Build) void {
     const mb = MicroBuild.init(b, mz_dep) orelse return;
 
     // --- build options ---
-    const calibrate = b.option(bool, "calibrate", "Run ESC throttle range calibration on boot") orelse false;
     const options = b.addOptions();
+    // calibration mode
+    const calibrate = b.option(bool, "calibrate", "Run ESC throttle range calibration on boot") orelse false;
     options.addOption(bool, "calibrate", calibrate);
+
+    // debug mode
+    const debug_mode = b.option(bool, "debug", "Enable verbose debug logging") orelse false;
+    options.addOption(bool, "debug", debug_mode);
 
     // --- building the firmware ---
     const firmware = mb.add_firmware(.{

@@ -5,11 +5,22 @@ const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
 const mixer = @import("mixer.zig");
-
+const debug = @import("debug.zig");
 // --- Compile-time build options ---
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
+const debug_mode     = build_options.debug; // before 57.5KiB
 
+// --- Aliases ---
+const rpi = microzig.hal;
+const time = rpi.time;
+const uart = rpi.uart;
+
+const Servo = servo.Servo;
+const ServoConfig = servo.ServoConfig;
+const ServoGroup = servo.ServoGroup;
+
+// --- Configurations ---
 pub const microzig_options: microzig.Options = .{
     .interrupts = .{
         .PWM_IRQ_WRAP = .{ .c = pwmlib.handler }
@@ -62,28 +73,9 @@ const pin_config = rpi.pins.GlobalConfiguration{
     },
 };
 
-// --- Aliases ---
-const rpi = microzig.hal;
-const time = rpi.time;
-const uart = rpi.uart;
-
-const Servo = servo.Servo;
-const ServoConfig = servo.ServoConfig;
-const ServoGroup = servo.ServoGroup;
-
 // --- Hardware Initialization ---
 
-/// Configures UART0 at 115200 baud and registers it as the 'std.log' backend. Debug use only.
-fn setup_uart_logging() void {
-    const uart0 = uart.instance.UART0;
-    uart0.apply(.{
-        .baud_rate = 115200,
-        .clock_config = rpi.clock_config,
-    });
-    uart.init_logger(uart0);
 
-    std.log.info("UART successfully set up!", .{});
-}
 /// Configures UART1 at 420_000 baud for ELRS/CRSF receiver communication.
 fn setup_uart_crsf() uart.UART {
     const uart1 = uart.instance.UART1;
@@ -96,7 +88,7 @@ fn setup_uart_crsf() uart.UART {
 
 pub fn main() void {
 
-    // # --- Setup ---
+    // --- Setup ---
     const pins = pin_config.apply();
 
     // initialize ESC
@@ -113,8 +105,12 @@ pub fn main() void {
     // arm / calibrate ESC
     if (calibrate_mode) motor.calibrate() else motor.arm();
 
+    // debug mode setup
+    debug.setup();
+    var debug_state = debug.State{};
     // uart & crsf setup
-    setup_uart_logging(); // logging
+    //setup_uart_logging(); // logging
+
     const uart_crsf = setup_uart_crsf();
     var fsm = crsf.CrsfFsm{};
 
@@ -134,14 +130,13 @@ pub fn main() void {
     var before = time.get_time_since_boot();
     var last_rc_frame = before;
 
-
     // debug counters
-    var uart_errors: usize = 0;
-    var rc_frames: usize = 0;
-    var ls_frames: usize = 0;
+    // var uart_errors: usize = 0;
+    // var rc_frames: usize = 0;
+    // var ls_frames: usize = 0;
 
 
-    // # --- MAIN LOOP ---
+    // --- MAIN CONTROL LOOP ---
     while (true) {
         // drain all available bytes into the FSM
         drain: while (true) {
@@ -149,43 +144,36 @@ pub fn main() void {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
                 uart_crsf.clear_errors();
-                uart_errors += 1;
+                debug_state.countUartError();
                 continue :drain;
             } orelse break :drain; // FIFO empty -> done draining
             fsm.feed(byte);
         }
 
         // --- CRSF consumers ---
-        // the new approach is to only poll each type of CRSF frame once per main loop iteration.
+        // only poll each type of CRSF frame once per main loop iteration.
+
         if (fsm.takeRcChannels()) |ch| {
-            rc_frames += 1;
+            debug_state.countControls(ch);
             channels = mixer.genPilotControlsFromChannels(ch);
             last_rc_frame = time.get_time_since_boot();
-
         }
         if (fsm.takeLinkStats()) |ls| {
-            ls_frames += 1;
+            debug_state.countLinkStats(ls);
             link_stats = ls;
         }
 
-        // --- Mixer ---
+        // TODO: PID
+
         const now = time.get_time_since_boot();
+        before = now;
+
+        // --- Mixer ---
+
         failsafe = now.diff(last_rc_frame).to_us() > 500_000; // sets to true if the last rc frame was received more than 0.5s ago
         mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, failsafe);
 
-        // --- debug ---
-        // runs every 1s and gives an idea how well the CRSF parser works. expected:   RC: 250, LS: 10, ERR: 0
+        debug_state.ticker(now, failsafe);
 
-        if (now.diff(before).to_us() > 1_000_000) {
-            if (failsafe) std.log.info("FAILSAFE ACTIVE: {}", .{failsafe});
-            std.log.info("CH0: {d}, CH1: {d}, CH2: {d}, CH3: {d}", .{channels.ailerons, channels.elevator, channels.throttle, channels.rudder});
-            std.log.info("RC: {d},  LS: {d},  ERR: {d}", .{ rc_frames, ls_frames, uart_errors });
-            std.log.info("", .{});
-            rc_frames = 0;
-            ls_frames = 0;
-            uart_errors = 0;
-            before = time.get_time_since_boot();
-        }
-        // --- / debug ---
     }
 }
