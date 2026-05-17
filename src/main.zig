@@ -115,15 +115,7 @@ pub fn main() void {
     var fsm = crsf.CrsfFsm{};
 
     // filled with safe values until there is real data available
-    var channels = mixer.PilotControls{
-        .ailerons = 992,
-        .elevator = 992,
-        .throttle = 172,
-        .rudder = 992,
-        .aux1  = 172, .aux2  = 172, .aux3  = 172, .aux4  = 172,
-        .aux5  = 172, .aux6  = 172, .aux7  = 172, .aux8  = 172,
-        .aux9  = 172, .aux10 = 172, .aux11 = 172, .aux12 = 172,
-    };
+    var channels: [16]u16 = @splat(172);
     var link_stats: crsf.LinkStats = undefined;
 
     var failsafe: bool = false; // failsafe flag
@@ -155,7 +147,7 @@ pub fn main() void {
 
         if (fsm.takeRcChannels()) |ch| {
             debug_state.countControls(ch);
-            channels = mixer.genPilotControlsFromChannels(ch);
+            channels = ch;
             last_rc_frame = time.get_time_since_boot();
         }
         if (fsm.takeLinkStats()) |ls| {
