@@ -2,7 +2,7 @@
 
 Fixed-wing flight computer for the RP2040, written in Zig & C, using the [MicroZig](https://github.com/ZigEmbeddedGroup/microzig) framework.
 
-> **Status:** Milestone M2 in progress — RC pass-through working; mixer and failsafe watchdog implemented and bench-tested.
+> **Status:** Milestone M2 completed — RC pass-through working; mixer and failsafe watchdog implemented and bench-tested.
 
 ---
 
@@ -53,6 +53,7 @@ Flash the resulting `.uf2` from `zig-out/firmware/` by holding BOOTSEL on the Pi
 | Flag | Description |
 |---|---|
 | `-Dcalibrate` | Run ESC throttle-range calibration routine on boot |
+| `-Ddebug | Enable debug mode. Prints logs to UART0 |
 
 > **Note:** Always run ESC calibration with propellers removed. After calibration, re-flash without the `-Dcalibrate=true` flag to return to normal boot behaviour.
 
@@ -98,7 +99,7 @@ Typical α: 0.95–0.99.
 |---|---|---|
 | ✅ M0 | Foundation | Toolchain flashes; PWM outputs stable; ESC arms |
 | ✅ M1 | RC link | CRSF decoded; 16 channels visible over UART |
-| 🔄 M2 | Manual flight | RC pass-through flyable; failsafe tested in the field |
+| ✅ M2 | Manual flight | RC pass-through flyable; failsafe tested |
 | ⬜ M3 | IMU & sensor fusion | Stable pitch/roll angles, no drift |
 | ⬜ M4 | Stabilization | PID active; surfaces resist tilt on bench |
 | ⬜ M5 | Tuning & flight testing | Aircraft flies stably in stabilized mode |
