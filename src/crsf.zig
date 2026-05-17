@@ -62,10 +62,10 @@ pub const CrsfFsm = struct {
 
     // parsed, clean data for consumers
     // consume-on-read to prevent blocking or stale data
-    rc_channels: ?[16]u16  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Maybe add a wrapper later.
+    rc_channels: ?[16]u16  = null, // NOTE: no struct with named fields, as the use for each channel is not set in stone. Use mixer.PilotControls as a wrapper.
     link_stats: ?LinkStats = null,
 
-    // # --- Public API ---
+    // --- Public API ---
 
     /// Advances the FSM with one byte from the UART stream. Updates 'rc_channels' or 'link_stats' on a complete, valid frame.
     pub fn feed(self: *CrsfFsm, byte: u8) void {
@@ -147,7 +147,7 @@ pub const CrsfFsm = struct {
         return self.link_stats;
     }
 
-    // # --- Frame Decoders ---
+    // --- Frame Decoders ---
 
     /// Parses a 'Link Statistics' payload from 'self.buffer' and returns the decoded struct.
     fn decodeLinkStats(self: *const CrsfFsm) LinkStats {
