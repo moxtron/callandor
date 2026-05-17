@@ -74,9 +74,6 @@ pub fn enableCpuIrq() void {
     microzig.cpu.interrupt.enable(.PWM_IRQ_WRAP);
 }
 
-/// Debug counter. Incremented on every ISR fire; at 50Hz with N active slices it ticks at 50N/s.
-pub var fire_counter: usize = 0;
-
 /// ISR / PWM interrupt handler. Fires at 50Hz for each registered slice.
 ///
 /// At the start of each new 20ms cycle the counter is just reset to 0.
@@ -95,9 +92,6 @@ pub fn handler() callconv(.c) void {
         const index: SliceIndex = @truncate(@ctz(fired));
         fired &= fired - 1;
         const b = &buffer[index];
-
-        //debug
-        fire_counter += 1;
 
         // TODO: load a u32 atomically and unpack the two u16 values.
         // atomicLoad might not be necessary here, but it's safer to use.
