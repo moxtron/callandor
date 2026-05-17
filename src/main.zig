@@ -107,7 +107,10 @@ pub fn main() void {
 
     // debug mode setup
     debug.setup();
-    var debug_state = debug.State{};
+    var debug_state = if (comptime debug_mode) debug.State{};
+
+
+
     // uart & crsf setup
     //setup_uart_logging(); // logging
 
@@ -136,7 +139,7 @@ pub fn main() void {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
                 uart_crsf.clear_errors();
-                debug_state.countUartError();
+                if (comptime debug_mode) debug_state.countUartError();
                 continue :drain;
             } orelse break :drain; // FIFO empty -> done draining
             fsm.feed(byte);
@@ -146,12 +149,12 @@ pub fn main() void {
         // only poll each type of CRSF frame once per main loop iteration.
 
         if (fsm.takeRcChannels()) |ch| {
-            debug_state.countControls(ch);
+            if (comptime debug_mode) debug_state.countControls(ch);
             channels = ch;
             last_rc_frame = time.get_time_since_boot();
         }
         if (fsm.takeLinkStats()) |ls| {
-            debug_state.countLinkStats(ls);
+            if (comptime debug_mode) debug_state.countLinkStats(ls);
             link_stats = ls;
         }
 
@@ -165,7 +168,7 @@ pub fn main() void {
         failsafe = now.diff(last_rc_frame).to_us() > 500_000; // sets to true if the last rc frame was received more than 0.5s ago
         mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, failsafe);
 
-        debug_state.ticker(now, failsafe);
+        if (comptime debug_mode) debug_state.ticker(now, failsafe);
 
     }
 }

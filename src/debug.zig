@@ -12,8 +12,6 @@ const uart = rpi.uart;
 
 const Absolute = microzig.drivers.time.Absolute;
 
-// all functions are defined as `inline` so there is no function overhead when `enabled` is false.
-
 /// Configures UART0 at 115200 baud and registers it as the 'std.log' backend
 pub inline fn setup() void {
     if (comptime !enabled) return;
