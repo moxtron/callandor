@@ -21,5 +21,8 @@ jobs:
       - name: Build firmware
         run: zig build
 
-      # - name: Run unit tests
-      #   run: zig build test
+      - name: Build in debug mode
+        run: zig build -Ddebug
+
+      - name: Build in calibration mode
+        run: zig build -Dcalibrate
