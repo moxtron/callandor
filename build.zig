@@ -30,8 +30,8 @@ pub fn build(b: *std.Build) void {
     // --- compile C code & make headers visible ---
     firmware.artifact.addCSourceFiles(.{
         .root = b.path(""),
-        .files = &.{"src/mpu6050.c"},
-        .flags = &.{ "-std=c11", "-Wall" },
+        .files = &.{ "src/mpu6050.c", "src/comp.c" },
+        .flags = &.{ "-std=c11", "-Wall", "-ffunction-sections", "-fdata-sections" },
     });
 
     // lets Zig find mpu6050.h via @cInclude("mpu6050.h")
@@ -41,3 +41,7 @@ pub fn build(b: *std.Build) void {
     mb.install_firmware(firmware, .{}); // uf2
     mb.install_firmware(firmware, .{ .format = .elf });
 }
+pub const c = @cImport({
+    @cInclude("mpu6050.h");
+    @cInclude("comp.h");
+});

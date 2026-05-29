@@ -3,7 +3,11 @@ const microzig = @import("microzig");
 const rpi = microzig.hal;
 const time = rpi.time;
 const i2c = rpi.i2c;
+const std = @import("std");
 
+export fn c_atan2f(y: f32, x: f32) callconv(.c) f32 {
+    return std.math.atan2(y, x);
+}
 /// sleep_ms replacement for pico sdk
 export fn sleep_ms(us: u32) callconv(.c) void {
     time.sleep_ms(us);
@@ -33,8 +37,10 @@ export fn mpu_i2c_write(addr: u8, data: [*]const u8, len: usize) callconv(.c) i3
 /// Returns bytes read, or -1 on error.
 export fn mpu_i2c_write_then_read(
     addr: u8,
-    write_data: [*]const u8, write_len: usize,
-    read_data:  [*]u8,       read_len:  usize,
+    write_data: [*]const u8,
+    write_len: usize,
+    read_data: [*]u8,
+    read_len: usize,
 ) callconv(.c) i32 {
     const address: i2c.Address = @enumFromInt(addr);
     imu_i2c.write_then_read_blocking(address, write_data[0..write_len], read_data[0..read_len], null) catch return -1;

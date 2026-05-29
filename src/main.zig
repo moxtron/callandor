@@ -5,15 +5,16 @@ const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
 const mpu = @import("mpu6050.zig");
-comptime { _ = @import("bindings.zig"); }
+const comp = @import("comp.h");
+comptime {
+    _ = @import("bindings.zig");
+}
 // const mpu = @cImport({
 //     @cInclude("mpu6050.h");
 // });
 
-
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
-
 
 const rpi = microzig.hal;
 const time = rpi.time;
@@ -27,30 +28,16 @@ const ServoConfig = servo.ServoConfig;
 const ServoGroup = servo.ServoGroup;
 
 pub const microzig_options: microzig.Options = .{
-    .interrupts = .{
-        .PWM_IRQ_WRAP = .{ .c = pwmlib.handler }
-    },
+    .interrupts = .{ .PWM_IRQ_WRAP = .{ .c = pwmlib.handler } },
     .logFn = uart.log,
 };
 
 /// Compile-time pin assignment for UART and PWM peripherals.
 const pin_config = rpi.pins.GlobalConfiguration{
-    .GPIO0 = .{
-        .name = "uart0_tx",
-        .function = .UART0_TX
-    },
-    .GPIO1 = .{
-        .name = "uart0_rx",
-        .function = .UART0_RX
-    },
-    .GPIO8 = .{
-        .name = "crsf_rx",
-        .function = .UART1_TX
-    },
-    .GPIO9 = .{
-        .name = "crsf_tx",
-        .function = .UART1_RX
-    },
+    .GPIO0 = .{ .name = "uart0_tx", .function = .UART0_TX },
+    .GPIO1 = .{ .name = "uart0_rx", .function = .UART0_RX },
+    .GPIO8 = .{ .name = "crsf_rx", .function = .UART1_TX },
+    .GPIO9 = .{ .name = "crsf_tx", .function = .UART1_RX },
     .GPIO14 = .{
         .name = "i2c_sda",
         .function = .I2C1_SDA,
@@ -137,7 +124,12 @@ pub fn main() void {
     }
     // container for IMU data
     var imu_data: mpu.MpuData = undefined;
-
+    var bias_values: mpu.MpuData = undefined;
+    var pitch_angle: f32 = undefined;
+    var roll_angle: f32 = undefined;
+    if (mpu.calibrateBias(&bias_values)) {} else {
+        return;
+    }
     while (true) {
         // drain all available bytes into the FSM
         while (true) {
@@ -156,10 +148,7 @@ pub fn main() void {
             .none => {},
 
             .rc_channels => |ch| {
-                std.log.info(
-                    "CH: {d} {d} {d} {d} | {d} {d} {d} {d}",
-                    .{ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7]}
-                );
+                std.log.info("CH: {d} {d} {d} {d} | {d} {d} {d} {d}", .{ ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6], ch[7] });
             },
             .link_stats => |ls| {
                 std.log.info("LQ: {d}%  RSSI1: -{d}dBm  SNR: {d}dB", .{
@@ -168,14 +157,21 @@ pub fn main() void {
                     ls.uplink_snr,
                 });
             },
-
         }
+
         if (mpu.mpu6050_read(&imu_data)) {
-            std.log.info(
-                "ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}", .{
-                    imu_data.accel_x, imu_data.accel_y, imu_data.accel_z,
-                    imu_data.gyro_x,  imu_data.gyro_y,  imu_data.gyro_z,
-                    });
+            std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}", .{
+                imu_data.accel_x, imu_data.accel_y, imu_data.accel_z,
+                imu_data.gyro_x,  imu_data.gyro_y,  imu_data.gyro_z,
+            });
+        }
+        if (mpu.filter(&imu_data, bias_values, &pitch_angle, &roll_angle)) {
+            std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d} BIAS:{d}", .{
+                imu_data.accel_x,    imu_data.accel_y, imu_data.accel_z,
+                imu_data.gyro_x,     imu_data.gyro_y,  imu_data.gyro_z,
+                bias_values.accel_z,
+            });
+            sleep(1000);
         }
     }
 }
