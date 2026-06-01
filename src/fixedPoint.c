@@ -9,7 +9,7 @@ q23_8_t make_q(int32_t integer_part, int32_t fractial_part){
         // is represented like 0b1100 0000 192 (base 10) which represents
         // 2^-1 +2^-2 = 0.75 when integer part is negative for instance
         // -45 then | 0.75 = -44.25 but should be -45.75 so its first converted
-        // to a positve value and then returned as its twos complement
+        // to a positve value and then returned as twos complement
         q23_8_t positive = ((-integer_part) << 8) | fractial_part;
         return -positive;
     }
@@ -31,4 +31,20 @@ void print_q(q23_8_t x){
     print(".");
     printNum(fractial_dec);
     print("\n");
+}
+// subtract two q23_8_t numbers (minuend - subtrahend)
+q23_8_t subtractQ23_8(q23_8_t minuend, q23_8_t subtrahend){
+    return minuend - subtrahend;
+}
+// add two q23_8_t numbers (addend + addend1)
+q23_8_t addQ23_8(q23_8_t addend, q23_8_t added1){
+    return addend + added1;
+}
+// multiply two q23_8_t numbers (multiplicand * multiplier)
+q23_8_t multiplyQ23_8(q23_8_t multiplicand, q23_8_t multiplier){
+    return (int64_t) multiplicand * multiplier >> 8;
+}
+// divide two q23_8_t numbers (dividend / divisor)
+q23_8_t divide(q23_8_t dividend, q23_8_t divisor){
+    return ((int64_t) dividend << 8) / divisor;
 }
