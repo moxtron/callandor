@@ -167,9 +167,9 @@ pub fn main() void {
         }
         if (mpu.filter(&imu_data, bias_values, &pitch_angle, &roll_angle)) {
             std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d} BIAS:{d}", .{
-                imu_data.accel_x,    imu_data.accel_y, imu_data.accel_z,
-                imu_data.gyro_x,     imu_data.gyro_y,  imu_data.gyro_z,
-                bias_values.accel_z,
+                imu_data.accel_x,   imu_data.accel_y, imu_data.accel_z,
+                imu_data.gyro_x,    imu_data.gyro_y,  imu_data.gyro_z,
+                bias_values.gyro_z,
             });
             sleep(1000);
         }

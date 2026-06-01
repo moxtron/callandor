@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) void {
     // --- compile C code & make headers visible ---
     firmware.artifact.addCSourceFiles(.{
         .root = b.path(""),
-        .files = &.{ "src/mpu6050.c", "src/comp.c" },
+        .files = &.{ "src/mpu6050.c", "src/comp.c", "src/fixedPoint.c" },
         .flags = &.{ "-std=c11", "-Wall", "-ffunction-sections", "-fdata-sections" },
     });
 

@@ -46,3 +46,9 @@ export fn mpu_i2c_write_then_read(
     imu_i2c.write_then_read_blocking(address, write_data[0..write_len], read_data[0..read_len], null) catch return -1;
     return @intCast(read_len);
 }
+export fn printNum(x: i32) callconv(.c) void {
+    std.log.info("{d}", .{x});
+}
+export fn print(str: [*:0]u8) callconv(.c) void {
+    std.log.info("{s}", .{str});
+}
