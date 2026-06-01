@@ -2,7 +2,7 @@
 #include "comp.h"
 typedef int32_t q23_8_t;
 
-
+// returns a q23_8_t number represented by an int32 in memory
 q23_8_t make_q(int32_t integer_part, int32_t fractial_part){
     if(integer_part < 0){
         // converting it to a positve value because if fractional_part
@@ -14,18 +14,23 @@ q23_8_t make_q(int32_t integer_part, int32_t fractial_part){
         return -positive;
     }
     else{
+        // shift integer and fractional part together
         return (integer_part << 8) | fractial_part;
     }    
     
 }
-// prints a number in q23_8_t format
+// prints a q23_8_t number in decimal format
 void print_q(q23_8_t x){
     if(x < 0){
+        // print minus sign if number is negative
         print("-");
         x = -x;   
     }
+    // get integer part by shifting right and dropping 8 fractional bits
     int32_t integer_part = x >> 8;
+    // get fractional bits by masking first 8 bits
     int32_t fractial_part = x & 0xff;
+    // get fractional bits represented from 0-1000
     int32_t fractial_dec = (fractial_part * 1000) >> 8;
     printNum(integer_part);
     print(".");
