@@ -47,7 +47,7 @@ q23_8_t addQ23_8(q23_8_t addend, q23_8_t added1){
 }
 // multiply two q23_8_t numbers (multiplicand * multiplier)
 q23_8_t multiplyQ23_8(q23_8_t multiplicand, q23_8_t multiplier){
-    return (int64_t) multiplicand * multiplier >> 8;
+    return (int64_t) multiplicand * (int64_t) multiplier >> 8;
 }
 // divide two q23_8_t numbers (dividend / divisor)
 q23_8_t divide(q23_8_t dividend, q23_8_t divisor){
