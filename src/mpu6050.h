@@ -1,6 +1,4 @@
-#ifndef MPU6050_H
-#define MPU6050_H
-
+#pragma once
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -30,4 +28,3 @@ typedef struct {
 bool mpu6050_init();
 bool mpu6050_read(MpuData *data);
 
-#endif

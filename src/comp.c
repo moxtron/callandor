@@ -1,22 +1,11 @@
 #include "comp.h"
 #include "mpu6050.h"
-#include <stdint.h>
 #define TIMER_BASE      0x40054000
 #define TIMER_OFFSET    0x0C
 #define GYRO_SCALE      (500.0 / 32768)
 #define ACCEL_SCALE     (4.0 / 32768)
 #define RAD_TO_DEG      57.2958 // 180 / PI
 
-// buffer for the sum of mpuData added together from 1000 mpu reads
-// used to calculate the average 
-typedef struct {
-    int32_t accel_x;
-    int32_t accel_y;
-    int32_t accel_z;
-    int32_t gyro_x;
-    int32_t gyro_y;
-    int32_t gyro_z;
-} sumValesBuf;
 
 // gets current time in us
 uint32_t getTimeUs(){
