@@ -1,6 +1,5 @@
 #pragma once
 #include "mpu6050.h"
-#include "fixedPoint.h"
 
 // buffer for the sum of mpuData added together from 1000 mpu reads
 // used to calculate the average 

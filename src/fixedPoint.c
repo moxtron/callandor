@@ -1,4 +1,6 @@
+#include "fixedPoint.h"
 #include "comp.h"
+
 
 // returns a q23_8_t interpreted number represented by an int32 in memory
 q23_8_t make_q(int32_t integer_part, int32_t fractial_part){

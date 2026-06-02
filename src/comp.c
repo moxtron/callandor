@@ -1,5 +1,5 @@
 #include "comp.h"
-#include "mpu6050.h"
+
 #define TIMER_BASE      0x40054000
 #define TIMER_OFFSET    0x0C
 #define GYRO_SCALE      (500.0 / 32768)
