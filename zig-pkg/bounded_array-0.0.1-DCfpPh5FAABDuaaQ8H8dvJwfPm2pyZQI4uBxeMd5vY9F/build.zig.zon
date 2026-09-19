@@ -1,0 +1,12 @@
+.{
+    .name = .bounded_array,
+    .version = "0.0.1",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+    },
+    .fingerprint = 0x7cda5953ee9270c,
+}

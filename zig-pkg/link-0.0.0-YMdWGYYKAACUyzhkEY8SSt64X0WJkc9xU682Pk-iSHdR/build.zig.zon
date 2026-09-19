@@ -1,0 +1,12 @@
+.{
+    .name = .link,
+    .version = "0.0.0",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.fingerprint = 0x36ac99f11956c760,
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "link.zig",
+        "LICENSE",
+    },
+}

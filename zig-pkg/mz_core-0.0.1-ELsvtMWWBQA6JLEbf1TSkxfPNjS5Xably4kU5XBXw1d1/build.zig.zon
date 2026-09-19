@@ -1,0 +1,20 @@
+.{
+    .name = .mz_core,
+    .fingerprint = 0x2d3edeb5b42fbb10,
+    .version = "0.0.1",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.dependencies = .{
+        .@"bounded-array" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/bounded_array.tar.gz",
+            .hash = "bounded_array-0.0.1-DCfpPh5FAABDuaaQ8H8dvJwfPm2pyZQI4uBxeMd5vY9F",
+            .lazy = false,
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "test",
+        "LICENSE",
+    },
+}

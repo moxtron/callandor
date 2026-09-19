@@ -1,0 +1,33 @@
+.{
+    .name = .mz_buildinternals,
+    .fingerprint = 0xc02420463a42482c,
+    .version = "0.0.0",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.dependencies = .{
+        .regz = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/mz_tools_regz.tar.gz",
+            .hash = "mz_tools_regz-0.0.0-lIs8m_nbBgAu99oYFWP452Dg8Q9slGn6RNXhA-MfRCp9",
+            .lazy = false,
+        },
+        .uf2 = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/mz_tools_uf2.tar.gz",
+            .hash = "mz_tools_uf2-0.0.0-AXVSU6-HAAC03L5DA-N1yAnLv0VIoNe5nnYvolddQIlP",
+            .lazy = false,
+        },
+        .@"esp-image" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/mz_tools_espimage.tar.gz",
+            .hash = "mz_tools_espimage-0.1.0-c_pFWk9nAAD8rKHbaOd9aWvClRS_xRgdq1J5Pp1dQZFK",
+            .lazy = false,
+        },
+        .dfu = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/mz_tools_dfu.tar.gz",
+            .hash = "mz_tools_dfu-0.0.0-MLqVI3NUAABknuaHadhcv7B64IkCC3y1Pv3J408BBlPC",
+            .lazy = false,
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+    },
+}

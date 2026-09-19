@@ -1,0 +1,39 @@
+.{
+    .name = .libxml2,
+    .version = "2.15.1-2",
+    .minimum_zig_version = "0.15.1",
+    .dependencies = .{
+        .libxml2 = .{
+            .url = "https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.1.tar.xz",
+            .hash = "N-V-__8AAPCbSwEcttmGC8VZFtoJxaP06X_upd7O13NMUkIf",
+        },
+        .zlib = .{
+            .url = "git+https://github.com/allyourcodebase/zlib.git#c5115f4b69ef660f72a835c6638f80508ef284c7",
+            .hash = "zlib-1.3.1-1-ZZQ7ldENAAA7qJjUXP6E6xnRuV-jDL9dyoJFc_eb3zQ6",
+            .lazy = true,
+        },
+        .libiconv = .{
+            .url = "git+https://github.com/allyourcodebase/libiconv.git#d86666233f4e0045b586060260e8a6093f5cdd8d",
+            .hash = "libiconv-1.18.0-p9sJwWnqAAAAD_T5JHJ8v9OrgUtLGT6ov322zOnkUkv5",
+            .lazy = true,
+        },
+        .win_iconv = .{
+            .url = "git+https://github.com/allyourcodebase/win-iconv.git#341e958b33f1cd1142f00a561510d83e6556f1fd",
+            .hash = "win_iconv-0.0.10--19NP7MRAAAnmImNeW9llGV-UPmCHV-4MN_FVzNhb-P0",
+            .lazy = true,
+        },
+        .translate_c = .{
+            .url = "git+https://codeberg.org/ziglang/translate-c#0944784e197e419433a21d4b28bfc65e48e7d514",
+            .hash = "translate_c-0.0.0-Q_BUWo5NBwBs3K0a-B1XbxEF3gFdTb75VgOE0FL-2qKL",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+        "README.md",
+        "src",
+        "include",
+    },
+    .fingerprint = 0xf268267b866377a8, // Changing this has security and trust implications.
+}

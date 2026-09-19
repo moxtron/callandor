@@ -1,0 +1,13 @@
+.{
+    .name = .virtual_io,
+    .fingerprint = 0x9ed0871d23642986,
+    .version = "0.0.1",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.paths = .{
+        "src",
+        "build.zig",
+        "build.zig.zon",
+        "README.md",
+        "LICENSE",
+    },
+}

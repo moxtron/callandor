@@ -5,6 +5,7 @@ const pwmlib = @import("pwm.zig");
 const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
 const mpu = @import("mpu6050.zig");
+const mpu_real = @import("comp_filter.zig");
 const comp = @import("comp.h");
 comptime {
     _ = @import("bindings.zig");
@@ -123,16 +124,17 @@ pub fn main() void {
         std.log.err("MPU6050 initialization failed...", .{});
     }
     // container for IMU data
-    var imu_data: mpu.MpuData = undefined;
-    var bias_values: mpu.MpuData = undefined;
-    var pitch_angle: f32 = undefined;
-    var roll_angle: f32 = undefined;
-    if (mpu.calibrateBias(&bias_values)) {} else {
+    var CompFilterObj: mpu_real.compFilterObj = mpu_real.compFilterObj.init();
+    if (CompFilterObj.calibrateBias()) {} else {
         return;
     }
+    var now: u64 = undefined;
+    var last_filterd = time.get_time_since_boot().to_us();
+    CompFilterObj.initLastFilteredTime();
     while (true) {
         // drain all available bytes into the FSM
         while (true) {
+            now = time.get_time_since_boot().to_us();
             const received = crsf_uart.read_word() catch blk: {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
@@ -159,19 +161,23 @@ pub fn main() void {
             },
         }
 
-        if (mpu.mpu6050_read(&imu_data)) {
-            std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}", .{
-                imu_data.accel_x, imu_data.accel_y, imu_data.accel_z,
-                imu_data.gyro_x,  imu_data.gyro_y,  imu_data.gyro_z,
-            });
+        if (!mpu.mpu6050_read(&CompFilterObj.mpu_data)) {
+            return;
         }
-        if (mpu.filter(&imu_data, bias_values, &pitch_angle, &roll_angle)) {
-            std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d} BIAS:{d}", .{
-                imu_data.accel_x,   imu_data.accel_y, imu_data.accel_z,
-                imu_data.gyro_x,    imu_data.gyro_y,  imu_data.gyro_z,
-                bias_values.gyro_z,
+        if (!CompFilterObj.filter()) {
+            return;
+        }
+        if ((now - last_filterd) > 1000000) {
+            std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}\n", .{
+                CompFilterObj.mpu_data.accel_x, CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
+                CompFilterObj.mpu_data.gyro_x,  CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
             });
-            sleep(1000);
+            std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d} BIAS:{d}, PITCH_ANGLE: {d}, ROLL_ANGLE: {d}\n", .{
+                CompFilterObj.mpu_data.accel_x,   CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
+                CompFilterObj.mpu_data.gyro_x,    CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
+                CompFilterObj.bias_values.gyro_z, CompFilterObj.pitch_angle,      CompFilterObj.roll_angle,
+            });
+            last_filterd = now;
         }
     }
 }

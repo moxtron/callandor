@@ -1,0 +1,140 @@
+.{
+    .name = "microzig",
+    .fingerprint = 6943006534349122831,
+    .version = "0.15.1",
+    .minimum_zig_version = "0.15.1",
+    .dependencies = .{
+        .@"build-internals" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_buildinternals.tar.gz",
+            .hash = "mz_buildinternals-0.0.0-LEhCOn00AAAbDHca_UqBjfpbPZY87pP__CaMUwS2BYvp",
+            .lazy = false,
+        },
+        .core = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_core.tar.gz",
+            .hash = "mz_core-0.0.1-ELsvtHZwBQAzg6Mvm7Z-jzdheMZgkyXGp9G64O8M6byX",
+            .lazy = false,
+        },
+        .drivers = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_drivers.tar.gz",
+            .hash = "mz_drivers-0.0.1-bvRa3FYjEACd9x_MMqC63bFxqN5xw8m2X0pcsNDnX2PU",
+            .lazy = false,
+        },
+        .@"tools/regz" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_tools_regz.tar.gz",
+            .hash = "mz_tools_regz-0.0.0-lIs8m7sABwA1HXq3FoOrISOnQle9bn5vlTb_xIteWdPk",
+            .lazy = false,
+        },
+        .@"tools/uf2" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_tools_uf2.tar.gz",
+            .hash = "mz_tools_uf2-0.0.0-AXVSUxVnAADiN56-e74o5nHDLC3LWLbdBs_9peW4gyFv",
+            .lazy = false,
+        },
+        .@"tools/esp-image" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_tools_espimage.tar.gz",
+            .hash = "mz_tools_espimage-0.1.0-c_pFWoZpAABUFmCCDLN_basO0leaF_LOv4y0wZ30QLen",
+            .lazy = false,
+        },
+        .@"modules/foundation-libc" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/foundationlibc.tar.gz",
+            .hash = "foundationlibc-0.0.0-LAEuPIGUAABo2LK3URef9-mVLWNSo4qfnkM0h6OIwSU_",
+            .lazy = false,
+        },
+        .@"modules/riscv32-common" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/riscv32common.tar.gz",
+            .hash = "riscv32common-0.0.0--dy1tm9aAACSt9wC1aL-8tPAXFO1_pLH_RC-5UcFHU-4",
+            .lazy = false,
+        },
+        .@"modules/rtt" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/rtt.tar.gz",
+            .hash = "rtt-0.0.0-H4kM5G-fAAA7nwsPFsJbl_du0fSzUS13Kh6gFS_ELRrv",
+            .lazy = false,
+        },
+        .@"sim/aviron" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_sim_aviron.tar.gz",
+            .hash = "mz_sim_aviron-0.1.0-VOvqeuIbKwCAW4rY5NNxV-Hj6azIC8D4mf9KJJlJVMQz",
+            .lazy = true,
+        },
+        .@"port/espressif/esp" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_espressif_esp.tar.gz",
+            .hash = "mz_port_espressif_esp-0.0.0-vL3TCOKhGwDwvQp2wv23gDhyuwLWa8ZYMe_XUpPwuqQt",
+            .lazy = true,
+        },
+        .@"port/gigadevice/gd32" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_gigadevice_gd32.tar.gz",
+            .hash = "mz_port_gigadevice_gd32-0.0.0-xqHFW2ZmFADLVaFtda24RT0FvWL569umotvdeC3TVAwU",
+            .lazy = true,
+        },
+        .@"port/microchip/atmega" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_microchip_atmega.tar.gz",
+            .hash = "mz_port_microchip_atmega-0.0.0-0CWVS8clAACWcJqXqrDXPl763OLAw2y2fesa0cf7L1e4",
+            .lazy = true,
+        },
+        .@"port/microchip/samd51" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_microchip_samd51.tar.gz",
+            .hash = "mz_port_microchip_samd51-0.0.0-Jqrx8XANAAAcWqaRSp8-OhwNMQ-iGq8RuIbs30g2hr8k",
+            .lazy = true,
+        },
+        .@"port/nordic/nrf5x" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_nordic_nrf5x.tar.gz",
+            .hash = "mz_port_nordic_nrf5x-0.0.0--rttOLiDAQD5gU8s6fuhL8G7B9PIB94GquKvcCltwIOr",
+            .lazy = true,
+        },
+        .@"port/nxp/lpc" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_nxp_lpc.tar.gz",
+            .hash = "mz_port_nxp_lpc-0.0.0-nqBnkUL0FAAZHM2iJkWag9Azs_WpMKi8qGLcaOoouAdk",
+            .lazy = true,
+        },
+        .@"port/nxp/mcx" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_mcx.tar.gz",
+            .hash = "mz_port_mcx-0.0.0-N_6zHNUvAQCzUGHfHXulWySrVzC3vLsGoy4M2Kb3Rjvh",
+            .lazy = true,
+        },
+        .@"port/raspberrypi/rp2xxx" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_raspberrypi_rp2xxx.tar.gz",
+            .hash = "mz_port_raspberrypi_rp2xxx-0.0.0-wCvtiWu5DgCGvhr188_WqKe_mElqyVruujCf6SBYG0FS",
+            .lazy = true,
+        },
+        .@"port/stmicro/stm32" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_stmicro_stm32.tar.gz",
+            .hash = "mz_port_stmicro_stm32-0.0.0-J33BIFuYHgATVlvwcQD4Um6hR30AiD0d3Kle7p_8e_8Z",
+            .lazy = true,
+        },
+        .@"port/texasinstruments/msp430" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_texasinstruments_msp430.tar.gz",
+            .hash = "mz_port_texasinstruments_msp430-0.0.0-RTtINe8rAAAMTmCGN6V5OUfiEol-wOeM_FDWw9YGNXLc",
+            .lazy = true,
+        },
+        .@"port/texasinstruments/tm4c" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_texasinstruments_tm4c.tar.gz",
+            .hash = "mz_port_texasinstruments_tm4c-0.0.0-wvW1MWgTAADdYgsJV-FY2aVbupjQGuTx7ybFaeSTy_nq",
+            .lazy = true,
+        },
+        .@"port/wch/ch32v" = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.15.1/mz_port_wch_ch32v.tar.gz",
+            .hash = "mz_port_wch_ch32v-0.0.0-cmnnWpTyNQAPJtSO_mzVHZxy8cyOVgVbrF8mkMzIPIt_",
+            .lazy = true,
+        },
+        .boxzer = .{
+            .url = "git+https://codeberg.org/mattnite/boxzer.git#4021540de4b07c11102dd4d46383ce0066f838bb",
+            .hash = "boxzer-0.1.0--ed-MPrnAAAQAwXnfMJuSkgAsw4FseHEHKcn7OMKXGZS",
+            .lazy = false,
+        },
+    },
+    .paths = .{
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+        "design",
+        "tools/generate_linker_script.zig",
+    },
+    .boxzer_ignore_paths = .{
+        "tools",
+        "port",
+        "examples",
+        "build-internals",
+        "core",
+        "drivers",
+        "modules",
+    },
+}

@@ -1,0 +1,20 @@
+.{
+    .name = .mz_tools_espimage,
+    .fingerprint = 0x7e1bc55e5a45fa73,
+    .version = "0.1.0",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.dependencies = .{
+        .flags = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/mz_tools_flags.tar.gz",
+            .hash = "mz_tools_flags-0.0.1-SUpsxrMRAABvOPZEqdzuAyus11mRMOTP-1D_auV9Cf5i",
+            .lazy = false,
+        },
+    },
+    .paths = .{
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+    },
+}

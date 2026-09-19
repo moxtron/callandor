@@ -1,0 +1,13 @@
+.{
+    .name = .rtt,
+    .fingerprint = 0xb40f6cfbe40c891f,
+    .version = "0.0.0",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "README.md",
+        "LICENSE",
+    },
+}

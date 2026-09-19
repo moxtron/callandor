@@ -1,0 +1,19 @@
+.{
+    .name = .mz_drivers,
+    .fingerprint = 0x576453eedc5af46e,
+    .dependencies = .{
+        .link = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/releases/download/0.17.9/link.tar.gz",
+            .hash = "link-0.0.0-YMdWGYYKAACUyzhkEY8SSt64X0WJkc9xU682Pk-iSHdR",
+            .lazy = false,
+        },
+    },
+    .version = "0.0.1",
+    
+    .minimum_zig_version = "0.17.0-dev.1936+5a625d5f3",.paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+    },
+}
