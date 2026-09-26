@@ -129,7 +129,7 @@ pub fn main() void {
         return;
     }
     var now: u64 = undefined;
-    var last_filterd = time.get_time_since_boot().to_us();
+    var last_filterd = time.get_time_since_boot().to_us(); // should use CompfilterObj lastfilterinit function
     CompFilterObj.initLastFilteredTime();
     while (true) {
         // drain all available bytes into the FSM
