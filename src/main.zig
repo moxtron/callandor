@@ -68,25 +68,13 @@ const pin_config = rpi.pins.GlobalConfiguration{
 // --- Default Values ---
 const servo_defaults = ServoConfig{};
 const esc_defaults = esc.EscConfig{};
-const channel_defaults = [16]u16{
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    esc_defaults.min_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
-    servo_defaults.center_us,
+/// Initial RC channels until the first real CRSF frame arrives.
+/// throttle at the bottom of its range, everything else centered.
+const channel_defaults = blk: {
+    var defaults: [16]u16 = @splat(mixer.crsf_mid);
+    defaults[@intFromEnum(mixer.RcChannelIndex.throttle)] = mixer.crsf_min;
+    break :blk defaults;
 };
-
 // --- Hardware Initialization ---
 
 /// Configures UART1 at 420_000 baud for ELRS/CRSF receiver communication.
