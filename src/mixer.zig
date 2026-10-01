@@ -91,14 +91,17 @@ pub fn mix(channels: [16]u16, motor: esc.Esc , servos: anytype, failsafe: bool) 
 inline fn ch (channels: [16]u16, c: RcChannelIndex) u16 {
     return channels[@intFromEnum(c)];
 }
+/// Raw CRSF channel value range (not microseconds!).
+pub const crsf_min: u16 =  172; // minimum for CRSF values
+pub const crsf_mid: u16 =  992; // center for CRSF values
+pub const crsf_max: u16 = 1811; // maximum for CRSF values
+
 // NOTE: the integer divisions are fine for now, but maybe later we should leverage the hardware SIO divider. it does integer division in 8 cycles instead of the 20-40 cycles.
 /// Scales CRSF values to PWM values.
 fn scaleToUs(crsf_value: u16, min_us: u16, max_us: u16) u16 {
-    const crsf_min =  172; // minimum for CRSF values
-    const crsf_max = 1811; // maximum for CRSF values
     const crsf: u32 = @intCast(std.math.clamp(crsf_value, crsf_min, crsf_max));
     // using saturating subtraction to guard against a glitchy signal (crsf < 172)
     const numerator: u32 = (crsf -| crsf_min) * @as(u32, max_us - min_us);
-    const result: u32 = numerator / (crsf_max - crsf_min) + min_us;
+    const result: u32 = numerator / @as(u32, crsf_max - crsf_min) + min_us;
     return @truncate(result);
 }
