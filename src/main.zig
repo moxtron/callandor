@@ -9,7 +9,7 @@ const debug = @import("debug.zig");
 // --- Compile-time build options ---
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
-const debug_mode     = build_options.debug; // before 57.5KiB
+const debug_mode = build_options.debug; // before 57.5KiB
 
 // --- Aliases ---
 const rpi = microzig.hal;
@@ -22,29 +22,21 @@ const ServoGroup = servo.ServoGroup;
 
 // --- Configurations ---
 pub const microzig_options: microzig.Options = .{
-    .interrupts = .{
-        .PWM_IRQ_WRAP = .{ .c = pwmlib.handler }
-    },
+    .interrupts = .{ .PWM_IRQ_WRAP = .{ .c = pwmlib.handler } },
     .logFn = uart.log,
 };
 
 /// Compile-time pin assignment for UART and PWM peripherals.
 const pin_config = rpi.pins.GlobalConfiguration{
-    .GPIO0 = .{
-        .name = "uart0_tx",
-        .function = .UART0_TX
-    },
-    .GPIO1 = .{
-        .name = "uart0_rx",
-        .function = .UART0_RX
-    },
+    .GPIO0 = .{ .name = "uart0_tx", .function = .UART0_TX },
+    .GPIO1 = .{ .name = "uart0_rx", .function = .UART0_RX },
     .GPIO8 = .{
-        .name = "elrs_tx",  // connects to RX on ELRS receiver
-        .function = .UART1_TX
+        .name = "elrs_tx", // connects to RX on ELRS receiver
+        .function = .UART1_TX,
     },
     .GPIO9 = .{
-        .name = "elrs_rx",  // connects to TX on ELRS receiver
-        .function = .UART1_RX
+        .name = "elrs_rx", // connects to TX on ELRS receiver
+        .function = .UART1_RX,
     },
     .GPIO16 = .{
         .name = "aileron_left",
@@ -73,8 +65,29 @@ const pin_config = rpi.pins.GlobalConfiguration{
     },
 };
 
-// --- Hardware Initialization ---
+// --- Default Values ---
+const servo_defaults = ServoConfig{};
+const esc_defaults = esc.EscConfig{};
+const channel_defaults = [16]u16{
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    esc_defaults.min_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+    servo_defaults.center_us,
+};
 
+// --- Hardware Initialization ---
 
 /// Configures UART1 at 420_000 baud for ELRS/CRSF receiver communication.
 fn setup_uart_crsf() uart.UART {
@@ -94,10 +107,10 @@ pub fn main() void {
     // initialize ESC
     var motor = esc.Esc.init(pins.esc, .{}, calibrate_mode);
     // initialize servos
-    const aileron_left  = Servo.init(pins.aileron_left,  .{ .servo_type = .aileron });
+    const aileron_left = Servo.init(pins.aileron_left, .{ .servo_type = .aileron });
     const aileron_right = Servo.init(pins.aileron_right, .{ .servo_type = .aileron });
-    const elevator      = Servo.init(pins.elevator,      .{ .servo_type = .elevator });
-    const rudder        = Servo.init(pins.rudder,        .{ .servo_type = .rudder });
+    const elevator = Servo.init(pins.elevator, .{ .servo_type = .elevator });
+    const rudder = Servo.init(pins.rudder, .{ .servo_type = .rudder });
 
     // initialize interrupts
     pwmlib.init(pin_config);
@@ -109,8 +122,6 @@ pub fn main() void {
     if (comptime debug_mode) debug.setup();
     var debug_state = if (comptime debug_mode) debug.State{};
 
-
-
     // uart & crsf setup
     //setup_uart_logging(); // logging
 
@@ -118,18 +129,12 @@ pub fn main() void {
     var fsm = crsf.CrsfFsm{};
 
     // filled with safe values until there is real data available
-    var channels: [16]u16 = @splat(172);
+    var channels: [16]u16 = channel_defaults;
     var link_stats: crsf.LinkStats = undefined;
 
     var failsafe: bool = false; // failsafe flag
     var before = time.get_time_since_boot();
     var last_rc_frame = before;
-
-    // debug counters
-    // var uart_errors: usize = 0;
-    // var rc_frames: usize = 0;
-    // var ls_frames: usize = 0;
-
 
     // --- MAIN CONTROL LOOP ---
     while (true) {
@@ -147,7 +152,6 @@ pub fn main() void {
 
         // --- CRSF consumers ---
         // only poll each type of CRSF frame once per main loop iteration.
-
         if (fsm.takeRcChannels()) |ch| {
             if (comptime debug_mode) debug_state.countControls(ch);
             channels = ch;
@@ -169,6 +173,5 @@ pub fn main() void {
         mixer.mix(channels, motor, .{ aileron_left, aileron_right, elevator, rudder }, failsafe);
 
         if (comptime debug_mode) debug_state.ticker(now, failsafe);
-
     }
 }
