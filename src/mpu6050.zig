@@ -1,10 +1,10 @@
 pub const MpuData = extern struct {
-    accel_x: i16,
-    accel_y: i16,
-    accel_z: i16,
-    gyro_x: i16,
-    gyro_y: i16,
-    gyro_z: i16,
+    accel_x: i32,
+    accel_y: i32,
+    accel_z: i32,
+    gyro_x: i32,
+    gyro_y: i32,
+    gyro_z: i32,
 };
 
 pub extern fn mpu6050_init() bool;

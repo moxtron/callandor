@@ -6,7 +6,6 @@ const esc = @import("esc.zig");
 const crsf = @import("crsf.zig");
 const mpu = @import("mpu6050.zig");
 const mpu_real = @import("comp_filter.zig");
-const comp = @import("comp.h");
 comptime {
     _ = @import("bindings.zig");
 }
@@ -129,12 +128,10 @@ pub fn main() void {
         return;
     }
     var now: u64 = undefined;
-    var last_filterd = time.get_time_since_boot().to_us(); // should use CompfilterObj lastfilterinit function
     CompFilterObj.initLastFilteredTime();
     while (true) {
         // drain all available bytes into the FSM
         while (true) {
-            now = time.get_time_since_boot().to_us();
             const received = crsf_uart.read_word() catch blk: {
                 // log the error, clear it and keep going
                 //std.log.warn("UART1_RX Error: {}", .{err});
@@ -145,6 +142,7 @@ pub fn main() void {
             fsm.feed(byte);
         }
 
+        now = time.get_time_since_boot().to_us();
         // consume one decoded frame per loop
         switch (fsm.takeFrame()) {
             .none => {},
@@ -167,7 +165,7 @@ pub fn main() void {
         if (!CompFilterObj.filter()) {
             return;
         }
-        if ((now - last_filterd) > 1000000) {
+        if ((now - CompFilterObj.last_filtered_time) > 1000000) {
             std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}\n", .{
                 CompFilterObj.mpu_data.accel_x, CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
                 CompFilterObj.mpu_data.gyro_x,  CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
@@ -177,7 +175,6 @@ pub fn main() void {
                 CompFilterObj.mpu_data.gyro_x,    CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
                 CompFilterObj.bias_values.gyro_z, CompFilterObj.pitch_angle,      CompFilterObj.roll_angle,
             });
-            last_filterd = now;
         }
     }
 }

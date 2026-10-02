@@ -6,14 +6,6 @@ const mpu = @import("mpu6050.zig");
 const gyro_scale: f64 = 500.0 / 32768.0;
 const accel_scale: f64 = 4.0 / 32768.0;
 const rad_to_deg: f64 = 180.0 / std.math.pi;
-const Bias_Values_Buf = struct {
-    accel_x: i32,
-    accel_y: i32,
-    accel_z: i32,
-    gyro_x: i32,
-    gyro_y: i32,
-    gyro_z: i32,
-};
 pub const compFilterObj = struct {
     mpu_data: mpu.MpuData,
     bias_values: mpu.MpuData,
@@ -26,7 +18,7 @@ pub const compFilterObj = struct {
     }
     pub fn calibrateBias(self: *compFilterObj) bool {
         const calibration_start = getTimeUs();
-        var bias_values_buf: Bias_Values_Buf = std.mem.zeroes(Bias_Values_Buf);
+        var bias_values_buf: mpu.MpuData = std.mem.zeroes(mpu.MpuData);
         var last_sample_time = calibration_start;
         var counter: u16 = 0;
         var now: u64 = undefined;
@@ -53,12 +45,12 @@ pub const compFilterObj = struct {
         // return this for init
         if (counter == 0) return false;
 
-        self.bias_values.accel_x = @as(i16, @intCast(@divTrunc(bias_values_buf.accel_x, counter)));
-        self.bias_values.accel_y = @as(i16, @intCast(@divTrunc(bias_values_buf.accel_y, counter)));
-        self.bias_values.accel_z = @as(i16, @intCast(@divTrunc(bias_values_buf.accel_z, counter)));
-        self.bias_values.gyro_x = @as(i16, @intCast(@divTrunc(bias_values_buf.gyro_x, counter)));
-        self.bias_values.gyro_y = @as(i16, @intCast(@divTrunc(bias_values_buf.gyro_y, counter)));
-        self.bias_values.gyro_z = @as(i16, @intCast(@divTrunc(bias_values_buf.gyro_z, counter)));
+        self.bias_values.accel_x = @as(i32, @intCast(@divTrunc(bias_values_buf.accel_x, counter)));
+        self.bias_values.accel_y = @as(i32, @intCast(@divTrunc(bias_values_buf.accel_y, counter)));
+        self.bias_values.accel_z = @as(i32, @intCast(@divTrunc(bias_values_buf.accel_z, counter)));
+        self.bias_values.gyro_x = @as(i32, @intCast(@divTrunc(bias_values_buf.gyro_x, counter)));
+        self.bias_values.gyro_y = @as(i32, @intCast(@divTrunc(bias_values_buf.gyro_y, counter)));
+        self.bias_values.gyro_z = @as(i32, @intCast(@divTrunc(bias_values_buf.gyro_z, counter)));
         return true;
     }
 
@@ -70,8 +62,8 @@ pub const compFilterObj = struct {
         const corrected_gx = @as(f64, @floatFromInt(self.mpu_data.gyro_x - self.bias_values.gyro_x));
         const corrected_gy = @as(f64, @floatFromInt(self.mpu_data.gyro_y - self.bias_values.gyro_y));
         const corrected_gz = @as(f64, @floatFromInt(self.mpu_data.gyro_z - self.bias_values.gyro_z));
-        const accel_z_offset: i16 = 8192 - self.bias_values.accel_z;
-        const corrected_az: i16 = self.mpu_data.accel_z + accel_z_offset;
+        const accel_z_offset: i32 = 8192 - self.bias_values.accel_z;
+        const corrected_az: i32 = self.mpu_data.accel_z + accel_z_offset;
         const az_g: f64 = @as(f64, @floatFromInt(corrected_az)) / 8192.0;
         self.last_filtered_time = now;
         if (az_g < 0.01 and az_g > -0.01) return false;
@@ -82,12 +74,12 @@ pub const compFilterObj = struct {
         self.roll_angle = 0.98 * gyro_roll + 0.02 * accel_roll;
         self.pitch_angle = 0.98 * gyro_pitch + 0.02 * accel_pitch;
 
-        self.mpu_data.accel_x = @as(i16, @intFromFloat(corrected_ax));
-        self.mpu_data.accel_y = @as(i16, @intFromFloat(corrected_ay));
+        self.mpu_data.accel_x = @as(i32, @intFromFloat(corrected_ax));
+        self.mpu_data.accel_y = @as(i32, @intFromFloat(corrected_ay));
         self.mpu_data.accel_z = corrected_az;
-        self.mpu_data.gyro_x = @as(i16, @intFromFloat(corrected_gx));
-        self.mpu_data.gyro_y = @as(i16, @intFromFloat(corrected_gy));
-        self.mpu_data.gyro_z = @as(i16, @intFromFloat(corrected_gz));
+        self.mpu_data.gyro_x = @as(i32, @intFromFloat(corrected_gx));
+        self.mpu_data.gyro_y = @as(i32, @intFromFloat(corrected_gy));
+        self.mpu_data.gyro_z = @as(i32, @intFromFloat(corrected_gz));
         return true;
     }
 
@@ -106,3 +98,43 @@ pub const compFilterObj = struct {
         };
     }
 };
+
+// Includes
+// const mpu = @import("mpu6050.zig");
+// const mpu_real = @import("comp_filter.zig");
+// comptime {
+//     _ = @import("bindings.zig");
+// }
+
+// IN MAIN BEFORE WHILE TRUE
+// // initialize IMU
+// if (!mpu.mpu6050_init()) {
+//     std.log.err("MPU6050 initialization failed...", .{});
+// }
+// // container for IMU data
+// var CompFilterObj: mpu_real.compFilterObj = mpu_real.compFilterObj.init();
+// if (CompFilterObj.calibrateBias()) {} else {
+//     return;
+// }
+// var now: u64 = undefined;
+// CompFilterObj.initLastFilteredTime();
+
+// IN WHILE TRUE LOOP
+// now = time.get_time_since_boot().to_us();
+//         if (!mpu.mpu6050_read(&CompFilterObj.mpu_data)) {
+//             return;
+//         }
+//         if (!CompFilterObj.filter()) {
+//             return;
+//         }
+//         if ((now - CompFilterObj.last_filtered_time) > 1000000) {
+//             std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}\n", .{
+//                 CompFilterObj.mpu_data.accel_x, CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
+//                 CompFilterObj.mpu_data.gyro_x,  CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
+//             });
+//             std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d} BIAS:{d}, PITCH_ANGLE: {d}, ROLL_ANGLE: {d}\n", .{
+//                 CompFilterObj.mpu_data.accel_x,   CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
+//                 CompFilterObj.mpu_data.gyro_x,    CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
+//                 CompFilterObj.bias_values.gyro_z, CompFilterObj.pitch_angle,      CompFilterObj.roll_angle,
+//             });
+//         }
