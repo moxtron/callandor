@@ -75,8 +75,8 @@ const channel_defaults = blk: {
     defaults[@intFromEnum(mixer.RcChannelIndex.throttle)] = mixer.crsf_min;
     break :blk defaults;
 };
-// --- Hardware Initialization ---
 
+// --- Hardware Initialization ---
 /// Configures UART1 at 420_000 baud for ELRS/CRSF receiver communication.
 fn setup_uart_crsf() uart.UART {
     const uart1 = uart.instance.UART1;
