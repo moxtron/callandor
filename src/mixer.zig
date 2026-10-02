@@ -81,7 +81,7 @@ pub fn mix(channels: [16]u16, motor: esc.Esc, servos: anytype, failsafe: bool) v
             }
         }
     } else { // failsafe
-        motor.setThrottle(1200); // low sustain to prevent stalling
+        motor.setThrottle(1000); // cut off power to motor
         inline for (servos) |s| {
             switch (s.config.servo_type) {
                 .aileron => s.setPulse(s.config.center_us + 100), // slight roll, so the plane goes in a slight circle
@@ -96,7 +96,6 @@ pub fn mix(channels: [16]u16, motor: esc.Esc, servos: anytype, failsafe: bool) v
 inline fn ch(channels: [16]u16, c: RcChannelIndex) u16 {
     return channels[@intFromEnum(c)];
 }
-// NOTE: the integer divisions are fine for now, but maybe later we should leverage the hardware SIO divider. it does integer division in 8 cycles instead of the 20-40 cycles.
 /// Scales CRSF values to PWM values.
 fn scaleToUs(crsf_value: u16, min_us: u16, max_us: u16) u16 {
     const crsf: u32 = @intCast(std.math.clamp(crsf_value, crsf_min, crsf_max));
