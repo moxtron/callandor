@@ -81,7 +81,7 @@ pub fn mix(channels: [16]u16, motor: esc.Esc, servos: anytype, failsafe: bool) v
             }
         }
     } else { // failsafe
-        motor.setThrottle(1000); // cut off power to motor
+        motor.setThrottle(1100); // cut off power to motor
         inline for (servos) |s| {
             switch (s.config.servo_type) {
                 .aileron => s.setPulse(s.config.center_us + 100), // slight roll, so the plane goes in a slight circle
