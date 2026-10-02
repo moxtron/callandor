@@ -29,6 +29,13 @@ pub fn build(b: *std.Build) void {
 
     // --- apply options ---
     firmware.add_app_import("build_options", options.createModule(), .{});
+    firmware.artifact.addCSourceFiles(.{
+        .root = b.path(""),
+        .files = &.{
+            "src/mpu6050.c",
+        },
+        .flags = &.{ "-std=c11", "-Wall", "-ffunction-sections", "-fdata-sections" },
+    });
 
     // --- create binaries ---
     mb.install_firmware(firmware, .{}); // uf2
