@@ -96,6 +96,15 @@ fn setup_uart_crsf() uart.UART {
     return uart1;
 }
 
+/// Configures the I2C1 interface for the MPU6050 and returns the I2C instance
+fn setup_i2c_imu() void {
+    const instance = i2c.instance.I2C1;
+    instance.apply(.{
+        .clock_config = rpi.clock_config,
+        .baud_rate = 400_000,
+        .repeated_start = true,
+    });
+}
 pub fn main() void {
 
     // --- Setup ---
