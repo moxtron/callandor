@@ -128,6 +128,7 @@ pub fn main() void {
         return;
     }
     var now: u64 = undefined;
+    var last_filtered_time = time.get_time_since_boot().to_us();
     CompFilterObj.initLastFilteredTime();
     while (true) {
         // drain all available bytes into the FSM
@@ -142,7 +143,6 @@ pub fn main() void {
             fsm.feed(byte);
         }
 
-        now = time.get_time_since_boot().to_us();
         // consume one decoded frame per loop
         switch (fsm.takeFrame()) {
             .none => {},
@@ -160,12 +160,14 @@ pub fn main() void {
         }
 
         if (!mpu.mpu6050_read(&CompFilterObj.mpu_data)) {
-            return;
+            _ = 0;
         }
         if (!CompFilterObj.filter()) {
-            return;
+            _ = 0;
         }
-        if ((now - CompFilterObj.last_filtered_time) > 1000000) {
+        // lastFiltered time needs change
+        now = time.get_time_since_boot().to_us();
+        if ((now - last_filtered_time) > 1000000) {
             std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}\n", .{
                 CompFilterObj.mpu_data.accel_x, CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
                 CompFilterObj.mpu_data.gyro_x,  CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
@@ -175,6 +177,7 @@ pub fn main() void {
                 CompFilterObj.mpu_data.gyro_x,    CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
                 CompFilterObj.bias_values.gyro_z, CompFilterObj.pitch_angle,      CompFilterObj.roll_angle,
             });
+            last_filtered_time = now;
         }
     }
 }

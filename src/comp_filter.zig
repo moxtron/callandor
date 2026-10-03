@@ -18,10 +18,15 @@ pub const compFilterObj = struct {
     }
     pub fn calibrateBias(self: *compFilterObj) bool {
         const calibration_start = getTimeUs();
+        std.log.info("1", .{});
         var bias_values_buf: mpu.MpuData = std.mem.zeroes(mpu.MpuData);
+        std.log.info("2", .{});
         var last_sample_time = calibration_start;
+        std.log.info("3", .{});
         var counter: u16 = 0;
+        std.log.info("4", .{});
         var now: u64 = undefined;
+        std.log.info("5", .{});
         while (true) {
             now = getTimeUs();
             if (now - last_sample_time >= 1000) {
@@ -45,12 +50,14 @@ pub const compFilterObj = struct {
         // return this for init
         if (counter == 0) return false;
 
+        std.log.info("6", .{});
         self.bias_values.accel_x = @divTrunc(bias_values_buf.accel_x, counter);
         self.bias_values.accel_y = @divTrunc(bias_values_buf.accel_y, counter);
         self.bias_values.accel_z = @divTrunc(bias_values_buf.accel_z, counter);
         self.bias_values.gyro_x = @divTrunc(bias_values_buf.gyro_x, counter);
         self.bias_values.gyro_y = @divTrunc(bias_values_buf.gyro_y, counter);
         self.bias_values.gyro_z = @divTrunc(bias_values_buf.gyro_z, counter);
+        std.log.info("7", .{});
         return true;
     }
 
