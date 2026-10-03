@@ -143,6 +143,7 @@ pub fn main() void {
 
     var before = time.get_time_since_boot();
     var last_rc_frame = before;
+    var last_filtered_time = time.get_time_since_boot().to_us();
 
     // debug counters
     // var uart_errors: usize = 0;
@@ -190,7 +191,7 @@ pub fn main() void {
         }
         // Before real flight have to check if reads and filters worked
         // const imu_ok = mpu.mpu6050_read(&CompFilterObj.mpu_data) and CompFilterObj.filter();
-        if ((mpu_log_now - CompFilterObj.last_filtered_time) > 1000000) {
+        if ((mpu_log_now - last_filtered_time) > 1000000) {
             std.log.info("ax:{d} ay:{d} az:{d} gx:{d} gy:{d} gz:{d}\n", .{
                 CompFilterObj.mpu_data.accel_x, CompFilterObj.mpu_data.accel_y, CompFilterObj.mpu_data.accel_z,
                 CompFilterObj.mpu_data.gyro_x,  CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
@@ -200,6 +201,7 @@ pub fn main() void {
                 CompFilterObj.mpu_data.gyro_x,    CompFilterObj.mpu_data.gyro_y,  CompFilterObj.mpu_data.gyro_z,
                 CompFilterObj.bias_values.gyro_z, CompFilterObj.pitch_angle,      CompFilterObj.roll_angle,
             });
+            last_filtered_time = mpu_log_now;
         }
         // PID loop
         var ctrl = channels;
