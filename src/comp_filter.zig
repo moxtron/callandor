@@ -28,12 +28,12 @@ pub const compFilterObj = struct {
                 if (mpu.mpu6050_read(&self.mpu_data)) {
                     last_sample_time = now;
                     counter += 1;
-                    bias_values_buf.accel_x += @as(i32, @intCast(self.mpu_data.accel_x));
-                    bias_values_buf.accel_y += @as(i32, @intCast(self.mpu_data.accel_y));
-                    bias_values_buf.accel_z += @as(i32, @intCast(self.mpu_data.accel_z));
-                    bias_values_buf.gyro_x += @as(i32, @intCast(self.mpu_data.gyro_x));
-                    bias_values_buf.gyro_y += @as(i32, @intCast(self.mpu_data.gyro_y));
-                    bias_values_buf.gyro_z += @as(i32, @intCast(self.mpu_data.gyro_z));
+                    bias_values_buf.accel_x += self.mpu_data.accel_x;
+                    bias_values_buf.accel_y += self.mpu_data.accel_y;
+                    bias_values_buf.accel_z += self.mpu_data.accel_z;
+                    bias_values_buf.gyro_x += self.mpu_data.gyro_x;
+                    bias_values_buf.gyro_y += self.mpu_data.gyro_y;
+                    bias_values_buf.gyro_z += self.mpu_data.gyro_z;
                 } else {
                     return false;
                 }
@@ -45,12 +45,12 @@ pub const compFilterObj = struct {
         // return this for init
         if (counter == 0) return false;
 
-        self.bias_values.accel_x = @as(i32, @intCast(@divTrunc(bias_values_buf.accel_x, counter)));
-        self.bias_values.accel_y = @as(i32, @intCast(@divTrunc(bias_values_buf.accel_y, counter)));
-        self.bias_values.accel_z = @as(i32, @intCast(@divTrunc(bias_values_buf.accel_z, counter)));
-        self.bias_values.gyro_x = @as(i32, @intCast(@divTrunc(bias_values_buf.gyro_x, counter)));
-        self.bias_values.gyro_y = @as(i32, @intCast(@divTrunc(bias_values_buf.gyro_y, counter)));
-        self.bias_values.gyro_z = @as(i32, @intCast(@divTrunc(bias_values_buf.gyro_z, counter)));
+        self.bias_values.accel_x = @divTrunc(bias_values_buf.accel_x, counter);
+        self.bias_values.accel_y = @divTrunc(bias_values_buf.accel_y, counter);
+        self.bias_values.accel_z = @divTrunc(bias_values_buf.accel_z, counter);
+        self.bias_values.gyro_x = @divTrunc(bias_values_buf.gyro_x, counter);
+        self.bias_values.gyro_y = @divTrunc(bias_values_buf.gyro_y, counter);
+        self.bias_values.gyro_z = @divTrunc(bias_values_buf.gyro_z, counter);
         return true;
     }
 
