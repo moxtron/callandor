@@ -9,6 +9,7 @@ const debug = @import("debug.zig");
 const mpu = @import("mpu6050.zig");
 const mpu_real = @import("comp_filter.zig");
 const pid = @import("pid.zig");
+const i2c = rpi.i2c;
 comptime {
     _ = @import("bindings.zig");
 }
@@ -120,6 +121,7 @@ pub fn main() void {
 
     // initialize interrupts
     pwmlib.init(pin_config);
+    setup_i2c_imu();
 
     // arm / calibrate ESC
     if (calibrate_mode) motor.calibrate() else motor.arm();
