@@ -16,8 +16,8 @@ comptime {
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
 const debug_mode = build_options.debug; // before 57.5KiB
-const ch_roll: u8 = @intFromEnum(mixer.RcChannelIndex(.ailerons));
-const ch_pitch: u8 = @intFromEnum(mixer.RcChannelIndex(.elevator));
+const ch_roll: u8 = 0;
+const ch_pitch: u8 = 1;
 const gyro_scale: f32 = 500.0 / 32768.0;
 
 // --- Aliases ---
@@ -185,7 +185,6 @@ pub fn main() void {
         if (!mpu.mpu6050_read(&CompFilterObj.mpu_data)) {
             _ = 0;
         }
-
         if (!CompFilterObj.filter()) {
             _ = 0;
         }
@@ -230,5 +229,3 @@ pub fn main() void {
         if (comptime debug_mode) debug_state.ticker(now, failsafe);
     }
 }
-mpu.mpu6050_read(&CompFilterObj.mpu_data)) {
-            _ = 0;
