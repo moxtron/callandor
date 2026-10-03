@@ -16,8 +16,8 @@ comptime {
 const build_options = @import("build_options");
 const calibrate_mode = build_options.calibrate;
 const debug_mode = build_options.debug; // before 57.5KiB
-const ch_roll: u8 = 0;
-const ch_pitch: u8 = 1;
+const ch_roll: u8 = @intFromEnum(mixer.RcChannelIndex.ailerons);
+const ch_pitch: u8 = @intFromEnum(mixer.RcChannelIndex.elevator);
 const gyro_scale: f32 = 500.0 / 32768.0;
 
 // --- Aliases ---
@@ -46,6 +46,16 @@ const pin_config = rpi.pins.GlobalConfiguration{
     .GPIO9 = .{
         .name = "elrs_rx", // connects to TX on ELRS receiver
         .function = .UART1_RX,
+    },
+    .GPIO14 = .{
+        .name = "i2c_sda",
+        .function = .I2C1_SDA,
+        //.pull = .up,
+    },
+    .GPIO15 = .{
+        .name = "i2c_scl",
+        .function = .I2C1_SCL,
+        //.pull = .up,
     },
     .GPIO16 = .{
         .name = "aileron_left",
